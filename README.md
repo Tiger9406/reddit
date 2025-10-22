@@ -33,13 +33,13 @@ Make reddit backend engine via otp
 
 ## Actors to imlement
 - EngineSupervisor; starts subactors
-- UserRegister: register new users, spawn user actors
+- UserRegister: register new users, spawn user actors; called by client process & returns a engine actor to communicate with?
 - Countless UserActor (simulation side): tracks self karma & actions: post comment vote DM join & leave subreddit
 - SubredditManagerSupervisor: supervises subreddit managers & spawns/deletes them
 - SubredditManager: 1 per subreddit; owns subreddit metadata like name, members, post ID; receives join.leave requests, routes posts/comments/votes to PostActors
 - PostManagerSupervisor: 1 per subreddit; supervises postActors for a subreddit
-- PostActor: 1 per post; stores post content, author, score, and list of comment IDs. Handles upvotes & downvotes & sends to user actors when requested for karma from this post
-- CommentActor: 1 per comment thread or one per set amount of comments; hierarchical comments for a single post
+- PostActor: 1 per post; stores post content, author, score, and list of comment IDs. Handles upvotes & downvotes & sends to user actors whenever karma update +/-1. Has function get random comment where it returns a random comment address for user to like or dislike or whatever
+- CommentActor: 1 per comment; keeps track of likes & dislikes & by user; do it via map; probably holds parent, list of children, content, author_id, and votes in a map
 - DMActor: routes dms between users; 1 for each conversation & stores msg history
 
 
