@@ -43,7 +43,7 @@ Make reddit backend engine via otp
 - DMActor: routes dms between users; 1 for each conversation & stores msg history
 
 
-### Client side: 
+### Simulator side: 
 - Simulator Supervisor
 - actor that has connect to engine actor; no persistent information
 - Distribution stuff to worry about later
