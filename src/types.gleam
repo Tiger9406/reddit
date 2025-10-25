@@ -137,6 +137,7 @@ pub type PostManagerMessage{
     PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, title: String, content: String, user_actor: Subject(UserMessage))
     PostManagerUpvote(post_id: PostId, username: Username)
     PostManagerDownvote(post_id: PostId, username: Username)
+    PostManagerAddCommentToPost(post_id: PostId, comment_id: CommentId)
 }
 
 pub type CommentState{
@@ -144,24 +145,28 @@ pub type CommentState{
         comment_id: CommentId,
         author_username: Username,
         content: String,
-        upvotes: Int,
-        downvotes: Int,
+        upvotes: Set(Username),
+        downvotes: Set(Username),
+        post: PostId,
+        parent: Option(CommentId),
         replies: Set(CommentId)
     )
 }
 
 pub type CommentMessage{
-    InitializeCommentMessage(comment_id: CommentId, author_username: Username, content: String)
-    UpvoteComment(username: Username)
-    DownvoteComment(username: Username)
-    GetScoreComment(reply_with: String)
-    AddReply(reply_comment_id: CommentId)
+    CommentInitialize(comment_id: CommentId, author_username: Username, content: String)
+    CommentUpvote(username: Username, user_manager: Subject(UserManagerMessage))
+    CommentDownvote(username: Username, user_manager: Subject(UserManagerMessage))
+    CommentGetScore(reply_with: String)
+    CommentAddReply(reply_comment_id: CommentId)
 }
 
 pub type CommentManagerState{
     CommentManagerState(
         comments: Dict(CommentId, Subject(CommentMessage)),
-        number_of_comments: Int
+        number_of_comments: Int,
+        post_manager: Subject(PostManagerMessage),
+        user_manager: Subject(UserManagerMessage)
     )
 }
 
@@ -169,7 +174,7 @@ pub type CommentManagerMessage{
     CommentManagerInitialize()
     CommentManagerGetComment(comment_id: CommentId, reply_with: String)
 
-    CommentManagerCreateComment(author_username: Username, content: String, user_actor: Subject(UserMessage))
+    CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage))
     CommentManagerCreateReplyComment(author_username: Username, parent_comment_id: CommentId, content: String, user_actor: Subject(UserMessage))
     CommentManagerUpvoteComment(comment_id: CommentId, username: Username)
     CommentManagerDownvoteComment(comment_id: CommentId, username: Username)

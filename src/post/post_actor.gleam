@@ -112,6 +112,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
         )
         actor.continue(new_state)
     }
+    
     _ -> {
       actor.continue(state)
     }

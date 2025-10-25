@@ -47,6 +47,18 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             process.send(post_actor, types.PostUpvote(username, state.user_manager))
             actor.continue(state)
         }
+        types.PostManagerDownvote(post_id, username) -> {
+            //send message to post actor to downvote
+            let assert Ok(post_actor) = dict.get(state.posts, post_id)
+            process.send(post_actor, types.PostDownvote(username, state.user_manager))
+            actor.continue(state)
+        }
+        types.PostManagerAddCommentToPost(post_id, comment_id) -> {
+            //send message to post actor to add comment
+            let assert Ok(post_actor) = dict.get(state.posts, post_id)
+            process.send(post_actor, types.PostAddComment(comment_id))
+            actor.continue(state)
+        }
         _ -> {
             actor.continue(state)
         }
