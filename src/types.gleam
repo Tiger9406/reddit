@@ -43,12 +43,12 @@ pub type UserManagerState{
         subreddit_manager: Subject(SubredditManagerMessage),
         post_manager: Subject(PostManagerMessage),
         comment_manager: Subject(CommentManagerMessage),
-        dm_supervisor: Subject(DMManagerSupervisorMessage),
+        dm_manager: Subject(DMManagerMessage),
     )
 }
 
 pub type UserManagerMessage{
-    UserManagerInitialize(subreddit_manager: Subject(SubredditManagerMessage), dm_supervisor: Subject(DMManagerSupervisorMessage))
+    UserManagerInitialize(subreddit_manager: Subject(SubredditManagerMessage), dm_manager: Subject(DMManagerMessage))
     UserManagerCreateUser(username: Username, reply_with: String)
     UserManagerGetUser(username: Username, reply_with: String)
     UserManagerGetNumberUsers(reply_with: String)
@@ -185,12 +185,12 @@ pub type DMState{
     DMState(
         conversation_id: DMConversationId,
         messages: List(String),
-        manager: Subject(DMManagerSupervisorMessage)
+        manager: Subject(DMManagerMessage)
     )
 }
 
-pub type DMManagerSupervisorState{
-    DMManagerSupervisorState(
+pub type DMManagerState{
+    DMManagerState(
         conversations: Set(Subject(DMActorMessage))
     )
 }
@@ -201,7 +201,7 @@ pub type DMActorMessage{
     GetMessages(reply_with: String)
 }
 
-pub type DMManagerSupervisorMessage{
+pub type DMManagerMessage{
     InitializeDMManager()
     SendDM(username: Username, other_username: Username, content: String, user_actor: Subject(UserMessage), other_user_actor: Subject(UserMessage))
     GetDMConversation(conversation_id: DMConversationId, reply_with: String)

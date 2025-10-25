@@ -1,8 +1,6 @@
 import gleam/otp/actor
 import types.{type UserMessage, type UserState}
 import gleam/set
-import gleam/erlang/process
-
 
 pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserState, UserMessage) {
   case message {

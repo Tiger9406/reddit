@@ -28,7 +28,7 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
             state.subreddit_manager,
             state.post_manager,
             state.comment_manager,
-            state.dm_supervisor,
+            state.dm_manager,
         )
         actor.continue(new_state)
     }
@@ -53,29 +53,28 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
     }
     types.UserManagerUserCreatePost(username, subreddit_name, title, content) -> {
         let assert Ok(actor) = dict.get(state.users, username)
-        //send to post manager
         process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor))
         actor.continue(state)
     }
     types.UserManagerUserCreateComment(username, post_id, comment_id, content) -> {
         let assert Ok(actor) = dict.get(state.users, username)
-        //send to comment manager
+        process.send(state.comment_manager, types.CommentManagerCreateComment(username, post_id, content, comment_id, actor))
         actor.continue(state)
     }
     types.UserManagerUserUpvotePost(username, post_id) -> {
         let assert Ok(actor) = dict.get(state.users, username)
-        //send to post manager
+        process.send(state.post_manager, types.PostManagerUpvote(username, post_id))
         actor.continue(state)
     }
     types.UserManagerUserDownvotePost(username, post_id) -> {
         let assert Ok(actor) = dict.get(state.users, username)
-        //send to post manager
+        process.send(state.post_manager, types.PostManagerDownvote(username, post_id))
         actor.continue(state)
     }
     types.UserManagerUserSendDM(username, other_username, content) -> {
         let assert Ok(actor) = dict.get(state.users, username)
         let assert Ok(other_actor) = dict.get(state.users, other_username)
-        process.send(state.dm_supervisor, types.SendDM(username, other_username, content, actor, other_actor))
+        process.send(state.dm_manager, types.SendDM(username, other_username, content, actor, other_actor))
         actor.continue(state)
     }
     _ -> {
