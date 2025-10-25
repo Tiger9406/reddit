@@ -8,7 +8,7 @@ import gleam/set.{type Set}
 import gleam/dict.{type Dict}
 import gleam/option.{type Option}
 import gleam/erlang/process.{type Subject}
-
+import gleam/pair
 
 pub type UserState{
     UserState(
@@ -181,24 +181,25 @@ pub type CommentManagerMessage{
 }
 
 
-pub type DMState{
-    DMState(
+pub type DMActorState{
+    DMActorState(
         conversation_id: DMConversationId,
         messages: List(String),
-        manager: Subject(DMManagerMessage)
     )
 }
 
 pub type DMManagerState{
     DMManagerState(
-        conversations: Set(Subject(DMActorMessage))
+        user_pairs: Dict(Username, Set(Username)),
+        conversations: Dict(#(Username, Username), DMConversationId),
+        subjects: Dict(DMConversationId, Subject(DMActorMessage))
     )
 }
 
 pub type DMActorMessage{
-    InitializeDMMessage(conversation_id: DMConversationId)
-    SendMessage(content: String, sender_username: String)
-    GetMessages(reply_with: String)
+    DMActorInitialize(conversation_id: DMConversationId)
+    DMActorSendMessage(content: String, sender_username: String)
+    DMActorGetMessages(reply_with: String)
 }
 
 pub type DMManagerMessage{
