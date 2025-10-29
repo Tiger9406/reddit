@@ -171,7 +171,6 @@ pub type CommentManagerMessage{
     CommentManagerSetPostManager(post_manager: Subject(PostManagerMessage))
 
     CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage))
-    CommentManagerCreateReplyComment(author_username: Username, parent_comment_id: CommentId, content: String, user_actor: Subject(UserMessage))
     CommentManagerUpvoteComment(comment_id: CommentId, username: Username)
     CommentManagerDownvoteComment(comment_id: CommentId, username: Username)
 }

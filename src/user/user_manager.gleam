@@ -45,24 +45,51 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         actor.continue(state)
     }
     types.UserManagerUserJoinSubreddit(username, subreddit_name) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.subreddit_manager, types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, actor))
+        case dict.get(state.users, username){
+            Ok(actor)->{
+                process.send(state.subreddit_manager, types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, actor))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
         actor.continue(state)
     }
 
     types.UserManagerUserLeaveSubreddit(username, subreddit_name) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.subreddit_manager, types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, actor))
+        case dict.get(state.users, username){
+            Ok(actor)->{
+                process.send(state.subreddit_manager, types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, actor))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
+        
         actor.continue(state)
     }
     types.UserManagerUserCreatePost(username, subreddit_name, title, content) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor))
+        case dict.get(state.users, username){
+            Ok(actor)->{
+                process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
+        
         actor.continue(state)
     }
     types.UserManagerUserCreateComment(username, post_id, comment_id, content) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.comment_manager, types.CommentManagerCreateComment(username, post_id, content, comment_id, actor))
+        case dict.get(state.users, username){
+            Ok(actor)->{
+                process.send(state.comment_manager, types.CommentManagerCreateComment(username, post_id, content, comment_id, actor))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
+        
         actor.continue(state)
     }
     types.UserManagerUserUpvotePost(username, post_id) -> {

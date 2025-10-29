@@ -74,26 +74,39 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
     }
     types.CommentManagerUpvoteComment(comment_id, username) -> {
         //send message to comment actor to upvote
-        let assert Ok(comment_actor) = dict.get(state.comments, comment_id)
-        case state.user_manager {
-            Some(user_manager) -> {
-                process.send(comment_actor, types.CommentUpvote(username, user_manager))
+        case dict.get(state.comments, comment_id) {
+            Ok(comment_actor) -> {
+                case state.user_manager {
+                    Some(user_manager) -> {
+                        process.send(comment_actor, types.CommentUpvote(username, user_manager))
+                    }
+                    None -> {
+                        io.println("User manager not set in comment manager")
+                    }
+                }
             }
-            None -> {
-                io.println("User manager not set in comment manager")
+            Error(_) -> {
+                io.println("Comment not found")
             }
         }
+        
         actor.continue(state)
     }
     types.CommentManagerDownvoteComment(comment_id, username) -> {
         //send message to comment actor to downvote
-        let assert Ok(comment_actor) = dict.get(state.comments, comment_id)
-        case state.user_manager {
-            Some(user_manager) -> {
-                process.send(comment_actor, types.CommentDownvote(username, user_manager))
+        case dict.get(state.comments, comment_id) {
+            Ok(comment_actor) -> {
+                case state.user_manager {
+                    Some(user_manager) -> {
+                        process.send(comment_actor, types.CommentDownvote(username, user_manager))
+                    }
+                    None -> {
+                        io.println("User manager not set in comment manager")
+                    }
+                }
             }
-            None -> {
-                io.println("User manager not set in comment manager")
+            Error(_) -> {
+                io.println("Comment not found")
             }
         }
         actor.continue(state)
@@ -117,8 +130,5 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         actor.continue(new_state)
     }
 
-    _ -> {
-      actor.continue(state)
-    }
   }
 }

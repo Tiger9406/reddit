@@ -46,20 +46,37 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
     }
     types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, user_actor) -> {
         //send message to subreddit actor to add subscriber
-        let assert Ok(subreddit_actor) = dict.get(state.subreddits, subreddit_name)
-        process.send(subreddit_actor, types.SubredditAddSubscriber(username, user_actor))
+        case dict.get(state.subreddits, subreddit_name) {
+            Ok(subreddit_actor) -> {
+                process.send(subreddit_actor, types.SubredditAddSubscriber(username, user_actor))
+            }
+            Error(_) -> {
+                io.println("Subreddit not found")
+            }
+        }
         actor.continue(state)
     }
     types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, user_actor) -> {
-        //send message to subreddit actor to remove subscriber
-        let assert Ok(subreddit_actor) = dict.get(state.subreddits, subreddit_name)
-        process.send(subreddit_actor, types.SubredditRemoveSubscriber(username, user_actor))
+        case dict.get(state.subreddits, subreddit_name) {
+            Ok(subreddit_actor) -> {
+                process.send(subreddit_actor, types.SubredditRemoveSubscriber(username, user_actor))
+            }
+            Error(_) -> {
+                io.println("Subreddit not found")
+            }
+        }
         actor.continue(state)
     }
     types.SubredditManagerCreatedPostInSubreddit(subreddit_name, post_id) -> {
-        //send message to subreddit actor to add post
-        let assert Ok(subreddit_actor) = dict.get(state.subreddits, subreddit_name)
-        process.send(subreddit_actor, types.SubredditCreatePost(post_id))
+        case dict.get(state.subreddits, subreddit_name) {
+            Ok(subreddit_actor) -> {
+                process.send(subreddit_actor, types.SubredditCreatePost(post_id))
+            }
+            Error(_) -> {
+                io.println("Subreddit not found")
+            }
+        }
+        
         actor.continue(state)
     }
   }

@@ -49,34 +49,53 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
         }
         types.PostManagerUpvote(post_id, username) -> {
             //send message to post actor to upvote
-            let assert Ok(post_actor) = dict.get(state.posts, post_id)
-            case state.user_manager {
-                Some(user_manager) -> {
-                    process.send(post_actor, types.PostUpvote(username, user_manager))
+            case dict.get(state.posts, post_id){
+                Ok(post_actor)->{
+                    case state.user_manager {
+                        Some(user_manager) -> {
+                            process.send(post_actor, types.PostUpvote(username, user_manager))
+                        }
+                        None -> {
+                            io.println("User manager not set in post manager")
+                        }
+                    }
                 }
-                None -> {
-                    io.println("User manager not set in post manager")
+                Error(_)->{
+                    io.println("Error, couldn't find post")
                 }
-            }
+            }            
             actor.continue(state)
         }
         types.PostManagerDownvote(post_id, username) -> {
             //send message to post actor to downvote
-            let assert Ok(post_actor) = dict.get(state.posts, post_id)
-            case state.user_manager {
-                Some(user_manager) -> {
-                    process.send(post_actor, types.PostDownvote(username, user_manager))
+            case dict.get(state.posts, post_id){
+                Ok(post_actor)->{
+                    case state.user_manager {
+                        Some(user_manager) -> {
+                            process.send(post_actor, types.PostDownvote(username, user_manager))
+                        }
+                        None -> {
+                            io.println("User manager not set in post manager")
+                        }
+                    }
                 }
-                None -> {
-                    io.println("User manager not set in post manager")
+                Error(_)->{
+                    io.println("Error, couldn't find post")
                 }
-            }
+            }   
+            
             actor.continue(state)
         }
         types.PostManagerAddCommentToPost(post_id, comment_id) -> {
             //send message to post actor to add comment
-            let assert Ok(post_actor) = dict.get(state.posts, post_id)
-            process.send(post_actor, types.PostAddComment(comment_id))
+            case dict.get(state.posts, post_id){
+                Ok(post_actor)->{
+                    process.send(post_actor, types.PostAddComment(comment_id))
+                }
+                Error(_)->{
+                    io.println("Error, couldn't find post")
+                }
+            }
             actor.continue(state)
         }
         _ -> {
