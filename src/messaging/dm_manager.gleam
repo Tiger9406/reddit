@@ -7,10 +7,7 @@ import messaging/dm_actor.{dm_actor}
 
 pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) -> actor.Next(types.DMManagerState, types.DMManagerMessage) {
     case message{
-        types.InitializeDMManager() -> {
-            actor.continue(state)
-        }
-        types.SendDM(from_username, to_username, content, from_actor, to_actor) -> {
+        types.SendDM(from_username, to_username, content) -> {
             let user_pair = #(from_username, to_username)
             let alternative_pair = #(to_username, from_username)
             case dict.get(state.conversations, user_pair){
@@ -58,6 +55,43 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                                 new_subjects
                             )
                             actor.continue(new_state)
+                        }
+                    }
+                }
+            }
+        }
+        types.GetDMConversationBetweenUsers(from_username, to_username, reply_to) -> {
+            let user_pair = #(from_username, to_username)
+            let alternative_pair = #(to_username, from_username)
+            case dict.get(state.conversations, user_pair){
+                Ok(conversation_id) -> {
+                    let dm_actor = dict.get(state.subjects, conversation_id)
+                    case dm_actor {
+                        Ok(dm_actor) -> {
+                            process.send(dm_actor, types.DMActorGetMessages(reply_to, from_username))
+                            actor.continue(state)
+                        }
+                        Error(_) -> {
+                            actor.continue(state)
+                        }
+                    }
+                }
+                Error(_) -> {
+                    case dict.get(state.conversations, alternative_pair){
+                        Ok(conversation_id) -> {
+                            let dm_actor = dict.get(state.subjects, conversation_id)
+                            case dm_actor {
+                                Ok(dm_actor) -> {
+                                    process.send(dm_actor, types.DMActorGetMessages(reply_to, from_username))
+                                    actor.continue(state)
+                                }
+                                Error(_) -> {
+                                    actor.continue(state)
+                                }
+                            }
+                        }
+                        Error(_) -> {
+                            actor.continue(state)
                         }
                     }
                 }

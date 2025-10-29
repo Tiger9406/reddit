@@ -3,12 +3,13 @@ import gleam/erlang/process
 import user/user_actor.{user_actor}
 import gleam/set
 import gleam/dict
+import gleam/io
 
 import types.{type UserManagerState, type UserManagerMessage}
 
 pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> actor.Next(UserManagerState, UserManagerMessage) {
   case message {
-    types.UserManagerCreateUser(username, reply_with) -> {
+    types.UserManagerCreateUser(username) -> {
         //create user actor
         let initial_state = types.UserState(
             username,
@@ -32,12 +33,12 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         )
         actor.continue(new_state)
     }
-    types.UserManagerGetNumberUsers(reply_to) -> {
-        //reply to whoever sent get number users? how to get sender?
+    types.UserManagerGetNumberUsers(username, reply_to) -> {
+        process.send(reply_to, types.EngineReceiveNumUsers(username, state.number_users))
         actor.continue(state)
     }
     types.UserManagerGetUser(username, reply_with) -> {
-        //lookup user in dict and reply with subject
+        
         actor.continue(state)
     }
     types.UserManagerUserJoinSubreddit(username, subreddit_name) -> {
@@ -62,19 +63,37 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         actor.continue(state)
     }
     types.UserManagerUserUpvotePost(username, post_id) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.post_manager, types.PostManagerUpvote(username, post_id))
+        case dict.get(state.users, username){
+            Ok(_)->{
+                process.send(state.post_manager, types.PostManagerUpvote(username, post_id))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
         actor.continue(state)
     }
     types.UserManagerUserDownvotePost(username, post_id) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        process.send(state.post_manager, types.PostManagerDownvote(username, post_id))
+        case dict.get(state.users, username){
+            Ok(_)->{
+                process.send(state.post_manager, types.PostManagerDownvote(username, post_id))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
         actor.continue(state)
     }
     types.UserManagerUserSendDM(username, other_username, content) -> {
-        let assert Ok(actor) = dict.get(state.users, username)
-        let assert Ok(other_actor) = dict.get(state.users, other_username)
-        process.send(state.dm_manager, types.SendDM(username, other_username, content, actor, other_actor))
+        case dict.get(state.users, username) {
+            Ok(_)->{
+                case dict.get(state.users, other_username){
+                    Ok(_)->process.send(state.dm_manager, types.SendDM(username, other_username, content))
+                    Error(_)-> io.println("can't find other username")
+                }
+            }
+            Error(_)->io.println("can't find username")
+        }
         actor.continue(state)
     }
     _ -> {

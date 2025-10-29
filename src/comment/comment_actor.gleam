@@ -6,9 +6,6 @@ import gleam/set
 
 pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -> actor.Next(types.CommentState, types.CommentMessage) {
     case message {
-        types.CommentInitialize(comment_id, author_username, content) -> {
-            actor.continue(state)
-        }
         types.CommentUpvote(username, user_manager) -> {
             //see if already in downvotes, if so remove
             case set.contains(state.downvotes, username){
@@ -97,13 +94,6 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                 }
             }
         }
-        types.CommentGetScore(reply_with) -> {
-            let upvote_count = set.size(state.upvotes)
-            let downvote_count = set.size(state.downvotes)
-            let score = upvote_count - downvote_count
-            //gotta send it
-            actor.continue(state)
-        }
         types.CommentAddReply(reply_comment_id) -> {
             let new_replies = set.insert(state.replies, reply_comment_id)
             let new_state = types.CommentState(
@@ -117,6 +107,21 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                 new_replies,
             )
             actor.continue(new_state)
+        }
+        types.CommentGetAll(username, reply_to) -> {
+            //send all info about comment to reply_to
+            process.send(reply_to, types.EngineReceiveCommentData(
+                username, 
+                state.comment_id,
+                state.author_username,
+                state.content,
+                set.size(state.upvotes),
+                set.size(state.downvotes),
+                state.post,
+                state.parent,
+                state.replies,
+            ))
+            actor.continue(state)
         }
         _ -> {
         actor.continue(state)

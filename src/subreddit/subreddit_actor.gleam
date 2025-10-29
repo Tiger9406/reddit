@@ -8,11 +8,11 @@ import gleam/int
 
 pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMessage) -> actor.Next(types.SubredditState, types.SubredditMessage) {
   case message {
-    types.SubredditGetSubscriberCount(reply_with) -> {
+    types.SubredditGetSubscriberCount(username, reply_with) -> {
         //reply to whoever
         actor.continue(state)
     }
-    types.SubredditGetSubscribers(reply_with) -> {
+    types.SubredditGetSubscribers(username, reply_with) -> {
         //reply to whoever
         actor.continue(state)
     }
@@ -43,6 +43,16 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
         )
         process.send(user_actor, types.UserLeftSubreddit(state.name))
         actor.continue(new_state)
+    }
+    types.SubredditGetAll(username, reply_to) -> {
+        process.send(reply_to, types.EngineReceiveSubredditDetails(
+          username, 
+            state.name,
+            state.description,
+            state.subscribers,
+            state.posts,
+        ))
+        actor.continue(state)
     }
     //handle messages here
     _ -> {

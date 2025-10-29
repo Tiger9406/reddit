@@ -1,20 +1,10 @@
 import gleam/otp/actor
 import types.{type UserMessage, type UserState}
 import gleam/set
+import gleam/erlang/process
 
 pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserState, UserMessage) {
   case message {
-    types.UserInitialize(username) ->{
-      let new_state = types.UserState(
-        username,
-        0,
-        set.new(),
-        set.new(),
-        set.new(),
-        set.new(),
-      )
-      actor.continue(new_state)
-    }
     types.UserUpdateKarma(delta) -> {
       let new_karma = state.karma + delta
       let new_state = types.UserState(
@@ -27,13 +17,15 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
       )
       actor.continue(new_state)
     }
-    types.UserGetKarma() -> {
+    types.UserGetKarma(reply_to) -> {
         // gotta reply to somebody the karma val except who?
         //gotta think about how client gonna do this
+        process.send(reply_to, types.EngineReceiveKarma(state.username, state.karma))
         actor.continue(state)
     }
-    types.UserGetSubscribedSubreddits() -> {
+    types.UserGetSubscribedSubreddits(reply_to) -> {
         // reply to who? who wants this info?
+        process.send(reply_to, types.EngineReceiveSubscribedSubreddits(state.username, state.subscribed_subreddits))
         actor.continue(state)
     }
 
@@ -85,7 +77,8 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
         )
         actor.continue(new_state)
     }
-    types.UserGetDMConversations() -> {
+    types.UserGetDMConversations(reply_to) -> {
+        process.send(reply_to, types.EngineReceiveDMConversations(state.username, state.dm_conversations))
         actor.continue(state)
     }
     _ -> actor.continue(state)

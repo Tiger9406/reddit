@@ -8,7 +8,6 @@ import gleam/set.{type Set}
 import gleam/dict.{type Dict}
 import gleam/option.{type Option}
 import gleam/erlang/process.{type Subject}
-import gleam/pair
 
 pub type UserState{
     UserState(
@@ -22,11 +21,9 @@ pub type UserState{
 }
 
 pub type UserMessage{
-    UserInitialize(username: Username)
-
-    UserGetKarma()
-    UserGetSubscribedSubreddits()
-    UserGetDMConversations()
+    UserGetKarma(reply_to: Subject(EngineReceiveMessage))
+    UserGetSubscribedSubreddits(reply_to: Subject(EngineReceiveMessage))
+    UserGetDMConversations(reply_to: Subject(EngineReceiveMessage))
     
     //update messages
     UserJoinedSubreddit(subreddit_name: SubredditName)
@@ -49,9 +46,12 @@ pub type UserManagerState{
 
 pub type UserManagerMessage{
     UserManagerInitialize(subreddit_manager: Subject(SubredditManagerMessage), dm_manager: Subject(DMManagerMessage))
-    UserManagerCreateUser(username: Username, reply_with: String)
-    UserManagerGetUser(username: Username, reply_with: String)
-    UserManagerGetNumberUsers(reply_with: String)
+    UserManagerCreateUser(username: Username)
+    UserManagerGetUser(username: Username, reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetNumberUsers(username: Username, reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetKarma(username: Username, reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetSubscribedSubreddits(username: Username, reply_to: Subject(EngineReceiveMessage))
+    
     UserManagerUserJoinSubreddit(username: Username, subreddit_name: SubredditName)
     UserManagerUserLeaveSubreddit(username: Username, subreddit_name: SubredditName)
     UserManagerUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String)
@@ -74,9 +74,9 @@ pub type SubredditState{
 }
 
 pub type SubredditMessage{
-    SubredditInitialize(name: SubredditName, description: String)
-    SubredditGetSubscriberCount(reply_with: String)
-    SubredditGetSubscribers(reply_with: String)
+    SubredditGetSubscriberCount(username: Username, reply_to: Subject(EngineReceiveMessage))
+    SubredditGetSubscribers(username: Username, reply_to: Subject(EngineReceiveMessage))
+    SubredditGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
 
     SubredditAddSubscriber(username: String, user_actor: Subject(UserMessage))
     SubredditRemoveSubscriber(username: String, user_actor: Subject(UserMessage))
@@ -92,12 +92,13 @@ pub type SubredditManagerState{
 }
 
 pub type SubredditManagerMessage{
-    SubredditManagerGetSubreddit(subreddit_name: SubredditName, reply_with: String)
+    SubredditManagerGetSubreddit(subreddit_name: SubredditName, reply_to: Subject(EngineReceiveMessage), username: Username)
 
     SubredditManagerCreateSubreddit(name: SubredditName, description: String)
     SubredditManagerAddSubscriberToSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage))
     SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage))    
     SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId)
+
 }
 
 pub type PostState{
@@ -114,11 +115,11 @@ pub type PostState{
 }
 
 pub type PostMessage{
-    PostInitialize(post_id: PostId, author_username: Username, subreddit_name: SubredditName, title: String, content: String)
     PostUpvote(username: Username, user_manager: Subject(UserManagerMessage))
     PostDownvote(username: Username, user_manager: Subject(UserManagerMessage))
-    PostGetScore(reply_with: String)
+    PostGetScore(username: Username, reply_to: Subject(EngineReceiveMessage))
     PostAddComment(comment_id: CommentId)
+    PostGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type PostManagerState{
@@ -126,13 +127,14 @@ pub type PostManagerState{
         posts: Dict(PostId, Subject(PostMessage)),
         number_of_posts: Int,
         comment_manager: Subject(CommentManagerMessage),
-        user_manager: Subject(UserManagerMessage)
+        user_manager: Option(Subject(UserManagerMessage))
     )
 }
 
 pub type PostManagerMessage{
-    PostManagerInitialize()
-    PostManagerGetPost(post_id: PostId, reply_with: String)
+    PostManagerGetPost(post_id: PostId, reply_to: Subject(EngineReceiveMessage), username: Username)
+
+    PostManagerSetUserManager(user_manager: Subject(UserManagerMessage))
 
     PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, title: String, content: String, user_actor: Subject(UserMessage))
     PostManagerUpvote(post_id: PostId, username: Username)
@@ -154,25 +156,26 @@ pub type CommentState{
 }
 
 pub type CommentMessage{
-    CommentInitialize(comment_id: CommentId, author_username: Username, content: String)
     CommentUpvote(username: Username, user_manager: Subject(UserManagerMessage))
     CommentDownvote(username: Username, user_manager: Subject(UserManagerMessage))
-    CommentGetScore(reply_with: String)
     CommentAddReply(reply_comment_id: CommentId)
+    CommentGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type CommentManagerState{
     CommentManagerState(
         comments: Dict(CommentId, Subject(CommentMessage)),
         number_of_comments: Int,
-        post_manager: Subject(PostManagerMessage),
-        user_manager: Subject(UserManagerMessage)
+        post_manager: Option(Subject(PostManagerMessage)),
+        user_manager: Option(Subject(UserManagerMessage))
     )
 }
 
 pub type CommentManagerMessage{
-    CommentManagerInitialize()
-    CommentManagerGetComment(comment_id: CommentId, reply_with: String)
+    CommentManagerGetComment(comment_id: CommentId, reply_to: Subject(EngineReceiveMessage), username: Username)
+
+    CommentManagerSetUserManager(user_manager: Subject(UserManagerMessage))
+    CommentManagerSetPostManager(post_manager: Subject(PostManagerMessage))
 
     CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage))
     CommentManagerCreateReplyComment(author_username: Username, parent_comment_id: CommentId, content: String, user_actor: Subject(UserMessage))
@@ -197,13 +200,70 @@ pub type DMManagerState{
 }
 
 pub type DMActorMessage{
-    DMActorInitialize(conversation_id: DMConversationId)
     DMActorSendMessage(content: String, sender_username: String)
-    DMActorGetMessages(reply_with: String)
+    DMActorGetMessages(reply_to: Subject(EngineReceiveMessage), from_username: String)
 }
 
 pub type DMManagerMessage{
-    InitializeDMManager()
-    SendDM(username: Username, other_username: Username, content: String, user_actor: Subject(UserMessage), other_user_actor: Subject(UserMessage))
-    GetDMConversation(conversation_id: DMConversationId, reply_with: String)
+    SendDM(username: Username, other_username: Username, content: String)
+    GetDMConversation(conversation_id: DMConversationId, reply_to: Subject(EngineReceiveMessage), username: Username)
+    GetDMConversationBetweenUsers(from_username: Username, to_username: Username, reply_to: Subject(EngineReceiveMessage))
+}
+
+pub type EngineState {
+    EngineState(
+        user_manager: Subject(UserManagerMessage),
+        subreddit_manager: Subject(SubredditManagerMessage),
+        post_manager: Subject(PostManagerMessage),
+        comment_manager: Subject(CommentManagerMessage),
+        dm_manager: Subject(DMManagerMessage),
+        engine_receive: Subject(EngineReceiveMessage)
+    )
+}
+
+pub type EngineMessage {
+    EngineGetUserManager(reply_with: Subject(Subject(UserManagerMessage)))
+    EngineGetSubredditManager(reply_with: Subject(Subject(SubredditManagerMessage)))
+
+    EngineCreateUser(username: Username)
+    EngineUserCreateSubreddit(subreddit_name: SubredditName, description: String)
+    EngineUserJoinSubreddit(username: Username, subreddit_name: SubredditName)
+    EngineUserLeaveSubreddit(username: Username, subreddit_name: SubredditName)
+
+    EngineUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String)
+    EngineUserLikesPost(username: Username, post_id: PostId)
+    EngineUserDislikesPost(username: Username, post_id: PostId)
+
+    EngineUserCreateComment(username: Username, post_id: PostId, parent_comment_id: Option(CommentId), content: String)
+    EngineUserUpvotesComment(username: Username, comment_id: CommentId)
+    EngineUserDownvotesComment(username: Username, comment_id: CommentId)
+
+    EngineUserSendDM(username: Username, other_username: Username, content: String)
+
+    EngineUserRequestKarma(username: Username)
+    EngineUserRequestSubscribedSubreddits(username: Username)
+
+    Shutdown
+}
+
+pub type EngineReceiveState{
+    EngineReceiveState()
+}
+pub type EngineReceiveMessage{
+    EngineReceiveKarma(username: Username, karma: Int)
+    EngineReceiveSubscribedSubreddits(username: Username, subreddits: Set(SubredditName))
+    EngineReceiveDMConversations(username: Username, conversations: Set(DMConversationId))
+    EngineReceiveDMMessages(username: Username, messages: List(String))
+    EngineReceiveCommentData(username: Username, comment_id: CommentId, author_username: Username, content: String, upvotes: Int, downvotes: Int, post_id: PostId, parent: Option(CommentId), replies: Set(CommentId))
+    EngineReceiveSubredditDetails(username: Username, subreddit_name: SubredditName, description: String, subscribers: Set(Username), posts: Set(PostId))
+    EngineReceiveNumUsers(username: Username, num_users: Int)
+    EngineReceivePostDetails(username: Username, post_id: PostId,
+        author_username: Username,
+        subreddit_name: SubredditName,
+        title: String,
+        content: String,
+        upvotes: Set(Username),
+        downvotes: Set(Username),
+        comments: Set(CommentId)
+    )
 }

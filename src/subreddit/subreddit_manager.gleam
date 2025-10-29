@@ -4,6 +4,7 @@ import gleam/otp/actor
 import gleam/set
 import gleam/dict
 import gleam/erlang/process
+import gleam/io
 
 import subreddit/subreddit_actor.{subreddit_actor}
 
@@ -31,8 +32,16 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         )
         actor.continue(new_state)
     }
-    types.SubredditManagerGetSubreddit(name, reply_with) -> {
-        //lookup subreddit in dict and reply with subject
+    types.SubredditManagerGetSubreddit(name, reply_to, username) -> {
+        //lookup subreddit in dict and reply with everything about it
+        case dict.get(state.subreddits, name) {
+            Ok(subreddit_actor) -> {
+                process.send(subreddit_actor, types.SubredditGetAll(username, reply_to))
+            }
+            Error(_) -> {
+                io.println("Subreddit not found")
+            }
+        }
         actor.continue(state)
     }
     types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, user_actor) -> {
