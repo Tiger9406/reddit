@@ -21,9 +21,7 @@ pub type UserState{
 }
 
 pub type UserMessage{
-    UserGetKarma(reply_to: Subject(EngineReceiveMessage))
-    UserGetSubscribedSubreddits(reply_to: Subject(EngineReceiveMessage))
-    UserGetDMConversations(reply_to: Subject(EngineReceiveMessage))
+    UserGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
     
     //update messages
     UserJoinedSubreddit(subreddit_name: SubredditName)
@@ -48,9 +46,6 @@ pub type UserManagerMessage{
     UserManagerInitialize(subreddit_manager: Subject(SubredditManagerMessage), dm_manager: Subject(DMManagerMessage))
     UserManagerCreateUser(username: Username)
     UserManagerGetUser(username: Username, reply_to: Subject(EngineReceiveMessage))
-    UserManagerGetNumberUsers(username: Username, reply_to: Subject(EngineReceiveMessage))
-    UserManagerGetKarma(username: Username, reply_to: Subject(EngineReceiveMessage))
-    UserManagerGetSubscribedSubreddits(username: Username, reply_to: Subject(EngineReceiveMessage))
     
     UserManagerUserJoinSubreddit(username: Username, subreddit_name: SubredditName)
     UserManagerUserLeaveSubreddit(username: Username, subreddit_name: SubredditName)
@@ -74,8 +69,6 @@ pub type SubredditState{
 }
 
 pub type SubredditMessage{
-    SubredditGetSubscriberCount(username: Username, reply_to: Subject(EngineReceiveMessage))
-    SubredditGetSubscribers(username: Username, reply_to: Subject(EngineReceiveMessage))
     SubredditGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
 
     SubredditAddSubscriber(username: String, user_actor: Subject(UserMessage))
@@ -240,9 +233,6 @@ pub type EngineMessage {
 
     EngineUserSendDM(username: Username, other_username: Username, content: String)
 
-    EngineUserRequestKarma(username: Username)
-    EngineUserRequestSubscribedSubreddits(username: Username)
-
     Shutdown
 }
 
@@ -250,20 +240,9 @@ pub type EngineReceiveState{
     EngineReceiveState()
 }
 pub type EngineReceiveMessage{
-    EngineReceiveKarma(username: Username, karma: Int)
-    EngineReceiveSubscribedSubreddits(username: Username, subreddits: Set(SubredditName))
-    EngineReceiveDMConversations(username: Username, conversations: Set(DMConversationId))
-    EngineReceiveDMMessages(username: Username, messages: List(String))
-    EngineReceiveCommentData(username: Username, comment_id: CommentId, author_username: Username, content: String, upvotes: Int, downvotes: Int, post_id: PostId, parent: Option(CommentId), replies: Set(CommentId))
-    EngineReceiveSubredditDetails(username: Username, subreddit_name: SubredditName, description: String, subscribers: Set(Username), posts: Set(PostId))
-    EngineReceiveNumUsers(username: Username, num_users: Int)
-    EngineReceivePostDetails(username: Username, post_id: PostId,
-        author_username: Username,
-        subreddit_name: SubredditName,
-        title: String,
-        content: String,
-        upvotes: Set(Username),
-        downvotes: Set(Username),
-        comments: Set(CommentId)
-    )
+    EngineReceiveUser(username: Username, user_state: UserState)
+    EngineReceiveDMMessages(username: Username, message_state: DMActorState)
+    EngineReceiveCommentData(username: Username, comment_state: CommentState)
+    EngineReceiveSubredditDetails(username: Username, subreddt_state: SubredditState)
+    EngineReceivePostDetails(username: Username, post_state: PostState)
 }

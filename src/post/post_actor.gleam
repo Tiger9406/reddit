@@ -94,10 +94,6 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
             }
         }
     }
-    types.PostGetScore(username, reply_with) -> {
-        //reply to whoever
-        actor.continue(state)
-    }
     types.PostAddComment(comment_id) -> {
         let new_comments = set.insert(state.comments, comment_id)
         let new_state = types.PostState(
@@ -113,13 +109,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
         actor.continue(new_state)
     }
     types.PostGetAll(username, reply_with)->{
-        process.send(reply_with, types.EngineReceivePostDetails(username, state.author_username,
-        state.post_id, state.subreddit_name,
-        state.title,
-        state.content,
-        state.upvotes,
-        state.downvotes,
-        state.comments))
+        process.send(reply_with, types.EngineReceivePostDetails(username, state))
         actor.continue(state)
     }
     

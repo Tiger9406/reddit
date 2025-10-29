@@ -62,8 +62,5 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         process.send(subreddit_actor, types.SubredditCreatePost(post_id))
         actor.continue(state)
     }
-    _ -> {
-      actor.continue(state)
-    }
   }
 }

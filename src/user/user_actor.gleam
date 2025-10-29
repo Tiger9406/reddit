@@ -17,16 +17,10 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
       )
       actor.continue(new_state)
     }
-    types.UserGetKarma(reply_to) -> {
-        // gotta reply to somebody the karma val except who?
-        //gotta think about how client gonna do this
-        process.send(reply_to, types.EngineReceiveKarma(state.username, state.karma))
-        actor.continue(state)
-    }
-    types.UserGetSubscribedSubreddits(reply_to) -> {
-        // reply to who? who wants this info?
-        process.send(reply_to, types.EngineReceiveSubscribedSubreddits(state.username, state.subscribed_subreddits))
-        actor.continue(state)
+
+    types.UserGetAll(username, reply_to)->{
+      process.send(reply_to, types.EngineReceiveUser(username, state))
+      actor.continue(state)
     }
 
     types.UserJoinedSubreddit(subreddit_name) ->{
@@ -77,10 +71,5 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
         )
         actor.continue(new_state)
     }
-    types.UserGetDMConversations(reply_to) -> {
-        process.send(reply_to, types.EngineReceiveDMConversations(state.username, state.dm_conversations))
-        actor.continue(state)
-    }
-    _ -> actor.continue(state)
   }
 }

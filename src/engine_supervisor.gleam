@@ -156,15 +156,6 @@ fn engine_actor(
             actor.continue(state)
         }
         
-        types.EngineUserRequestKarma(username) -> {
-            process.send(state.user_manager, types.UserManagerGetKarma(username, state.engine_receive))
-            actor.continue(state)
-        }
-        types.EngineUserRequestSubscribedSubreddits(username) -> {
-            process.send(state.user_manager, types.UserManagerGetSubscribedSubreddits(username, state.engine_receive))
-            actor.continue(state)
-        }
-        
         
         types.EngineUserSendDM(username, other_username, content) -> {
             process.send(state.user_manager, types.UserManagerUserSendDM(username, other_username, content))

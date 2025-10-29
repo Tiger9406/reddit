@@ -112,19 +112,9 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
             //send all info about comment to reply_to
             process.send(reply_to, types.EngineReceiveCommentData(
                 username, 
-                state.comment_id,
-                state.author_username,
-                state.content,
-                set.size(state.upvotes),
-                set.size(state.downvotes),
-                state.post,
-                state.parent,
-                state.replies,
+                state
             ))
             actor.continue(state)
-        }
-        _ -> {
-        actor.continue(state)
         }
     }
 }

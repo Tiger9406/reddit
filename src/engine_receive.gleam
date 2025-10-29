@@ -2,7 +2,6 @@
 import gleam/io
 import gleam/otp/actor
 import types
-import gleam/int
 
 
 pub fn engine_receive_actor(
@@ -11,32 +10,25 @@ pub fn engine_receive_actor(
 ) -> actor.Next(types.EngineReceiveState, types.EngineReceiveMessage) {
     case message {
         //handle messages here
-        types.EngineReceiveKarma(username, karma) -> {
-            io.println("User " <> username <> " has karma: " <> int.to_string(karma))
+        types.EngineReceiveUser(username, user_state)->{
+            io.println(username <> "info received: " <>user_state.username)
             actor.continue(state)
         }
-        types.EngineReceiveDMConversations(username, conversations) -> {
-            io.println("DM Conversations:")
-            actor.continue(state)
-        }
+
         types.EngineReceiveDMMessages(from_username, messages) -> {
-            io.println("DMs with " <> from_username <> ":")
+            io.println("DMs with " <> from_username <> ":" <> messages.conversation_id)
             actor.continue(state)
         }
-        types.EngineReceiveSubscribedSubreddits(username, subreddits) -> {
-            io.println("Subscribed Subreddits for " <> username <> ":")
+        types.EngineReceiveSubredditDetails(username, subreddit) -> {
+            io.println("Subscribed Subreddits for " <> username <> ":" <> subreddit.name)
             actor.continue(state)
         }
-        types.EngineReceiveCommentData(username, comment_id, author_username, content, upvotes, downvotes, post_id, parent, replies, ) -> {
-            io.println("Comment ID: " <> comment_id)
-            io.println("Author: " <> author_username)
-            io.println("Content: " <> content)
-            io.println("Upvotes: " <> int.to_string(upvotes))
-            io.println("Downvotes: " <> int.to_string(downvotes))
-            io.println("Post ID: " <> post_id)
+        types.EngineReceiveCommentData(username, comment_state) -> {
+            io.print(username<> " comment state: " <> comment_state.comment_id)
             actor.continue(state)
         }
-        _ -> {
+        types.EngineReceivePostDetails(username, post_state)->{
+            io.println(username<>" post state: " <> post_state.post_id)
             actor.continue(state)
         }
     }

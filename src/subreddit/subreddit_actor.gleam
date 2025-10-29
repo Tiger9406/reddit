@@ -4,18 +4,9 @@ import types
 import gleam/otp/actor
 import gleam/erlang/process
 import gleam/set
-import gleam/int
 
 pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMessage) -> actor.Next(types.SubredditState, types.SubredditMessage) {
   case message {
-    types.SubredditGetSubscriberCount(username, reply_with) -> {
-        //reply to whoever
-        actor.continue(state)
-    }
-    types.SubredditGetSubscribers(username, reply_with) -> {
-        //reply to whoever
-        actor.continue(state)
-    }
     types.SubredditAddSubscriber(username, user_actor) -> {
         let new_subs = set.insert(state.subscribers, username)
         let new_number_subs = state.number_of_subscribers + 1
@@ -47,10 +38,7 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
     types.SubredditGetAll(username, reply_to) -> {
         process.send(reply_to, types.EngineReceiveSubredditDetails(
           username, 
-            state.name,
-            state.description,
-            state.subscribers,
-            state.posts,
+          state
         ))
         actor.continue(state)
     }

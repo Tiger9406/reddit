@@ -33,12 +33,15 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         )
         actor.continue(new_state)
     }
-    types.UserManagerGetNumberUsers(username, reply_to) -> {
-        process.send(reply_to, types.EngineReceiveNumUsers(username, state.number_users))
-        actor.continue(state)
-    }
     types.UserManagerGetUser(username, reply_with) -> {
-        
+        case dict.get(state.users, username){
+            Ok(actor)->{
+                process.send(actor, types.UserGetAll(username, reply_with))
+            }
+            Error(_)->{
+                io.println("actor not found")
+            }
+        }
         actor.continue(state)
     }
     types.UserManagerUserJoinSubreddit(username, subreddit_name) -> {
