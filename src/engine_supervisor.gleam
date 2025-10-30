@@ -131,8 +131,7 @@ fn engine_actor(
             actor.continue(state)
         }
         types.EngineUserCreatePost(username, subreddit_name, title, content) -> {
-            process.send(state.user_manager, types.UserManagerUserCreatePost(username, subreddit_name, title
-, content))
+            process.send(state.user_manager, types.UserManagerUserCreatePost(username, subreddit_name, title, content))
             actor.continue(state)
         }
         types.EngineUserLikesPost(username, post_id) -> {
@@ -155,8 +154,6 @@ fn engine_actor(
             process.send(state.comment_manager, types.CommentManagerDownvoteComment(comment_id, username))
             actor.continue(state)
         }
-        
-        
         types.EngineUserSendDM(username, other_username, content) -> {
             process.send(state.user_manager, types.UserManagerUserSendDM(username, other_username, content))
             actor.continue(state)

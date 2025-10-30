@@ -14,7 +14,6 @@ pub fn engine_receive_actor(
             io.println(username <> "info received: " <>user_state.username)
             actor.continue(state)
         }
-
         types.EngineReceiveDMMessages(from_username, messages) -> {
             io.println("DMs with " <> from_username <> ":" <> messages.conversation_id)
             actor.continue(state)
