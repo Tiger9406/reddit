@@ -55,6 +55,8 @@ pub type UserManagerMessage{
     UserManagerUserDownvotePost(username: Username, post_id: PostId)
     UserManagerUserSendDM(username: Username, other_username: Username, content: String)
     UserManagerUpdateKarma(username: Username, delta: Int)
+
+    UserManagerGetAllUsers(reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type SubredditState{
@@ -92,6 +94,7 @@ pub type SubredditManagerMessage{
     SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage))    
     SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId)
 
+    SubredditManagerGetAllSubreddits(reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type PostState{
@@ -133,6 +136,8 @@ pub type PostManagerMessage{
     PostManagerUpvote(post_id: PostId, username: Username)
     PostManagerDownvote(post_id: PostId, username: Username)
     PostManagerAddCommentToPost(post_id: PostId, comment_id: CommentId)
+
+    PostManagerGetAllPosts(reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type CommentState{
@@ -173,6 +178,7 @@ pub type CommentManagerMessage{
     CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage))
     CommentManagerUpvoteComment(comment_id: CommentId, username: Username)
     CommentManagerDownvoteComment(comment_id: CommentId, username: Username)
+    CommentManagerGetAllComments(reply_to: Subject(EngineReceiveMessage))
 }
 
 
@@ -200,6 +206,7 @@ pub type DMManagerMessage{
     SendDM(username: Username, other_username: Username, content: String)
     GetDMConversation(conversation_id: DMConversationId, reply_to: Subject(EngineReceiveMessage), username: Username)
     GetDMConversationBetweenUsers(from_username: Username, to_username: Username, reply_to: Subject(EngineReceiveMessage))
+    DMManagerGetAllDMs(reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type EngineState {
@@ -232,6 +239,12 @@ pub type EngineMessage {
 
     EngineUserSendDM(username: Username, other_username: Username, content: String)
 
+    EngineGetAllSubreddits()
+    EngineGetAllPosts()
+    EngineGetAllComments()
+    EngineGetAllUsers()
+    EngineGetAllDMs()
+
     Shutdown
 }
 
@@ -244,4 +257,10 @@ pub type EngineReceiveMessage{
     EngineReceiveCommentData(username: Username, comment_state: CommentState)
     EngineReceiveSubredditDetails(username: Username, subreddt_state: SubredditState)
     EngineReceivePostDetails(username: Username, post_state: PostState)
+
+    EngineReceiveAllComments(CommentManagerState)
+    EngineReceiveAllDMs(DMManagerState)
+    EngineReceiveAllPosts(PostManagerState)
+    EngineReceiveAllSubreddits(SubredditManagerState)
+    EngineReceiveAllUsers(UserManagerState)
 }

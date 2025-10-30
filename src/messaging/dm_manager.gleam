@@ -102,5 +102,9 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
             //continue for now
             actor.continue(state)
         }
+        types.DMManagerGetAllDMs(reply_to)->{
+            process.send(reply_to, types.EngineReceiveAllDMs(state))
+            actor.continue(state)
+        }
     }
 }

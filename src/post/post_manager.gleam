@@ -102,5 +102,9 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             let new_state = types.PostManagerState(..state, user_manager: Some(user_manager_given))
             actor.continue(new_state)
         }
+        types.PostManagerGetAllPosts(reply_to)->{
+            process.send(reply_to, types.EngineReceiveAllPosts(state))
+            actor.continue(state)
+        }
     }
 }

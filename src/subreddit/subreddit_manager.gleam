@@ -76,7 +76,10 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
                 io.println("Subreddit not found")
             }
         }
-        
+        actor.continue(state)
+    }
+    types.SubredditManagerGetAllSubreddits(reply_to)->{
+        process.send(reply_to, types.EngineReceiveAllSubreddits(state))
         actor.continue(state)
     }
   }

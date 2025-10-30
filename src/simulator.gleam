@@ -320,8 +320,8 @@ fn random_choice(items: List(a)) -> a {
 }
 
 fn random_range(min: Int, max: Int) -> Int {
-    let ran = float.random()
-    float.round(ran*.int.to_float(max-min))+min
+    let diff = int.random(max-min)
+    min+diff
 }
 
 // ===== MAIN ENTRY POINT =====
@@ -330,14 +330,22 @@ pub fn run_simulation() -> Nil {
     let config = SimulatorConfig(
         num_users: 1000,
         num_subreddits: 100,
-        simulation_duration_ms: 60000, 
+        simulation_duration_ms: 10000, 
         zipf_exponent: 1.0,
     )
     
-    let _engine = start_simulator(config)
+    let engine = start_simulator(config)
     
     io.println("\n=== Simulation running for 60 seconds ===")
     process.sleep(config.simulation_duration_ms)
+
+    process.send(engine, types.EngineGetAllComments)
+    process.send(engine, types.EngineGetAllDMs)
+    process.send(engine, types.EngineGetAllUsers)
+    process.send(engine, types.EngineGetAllSubreddits)
+    process.send(engine, types.EngineGetAllPosts)
+
+    process.sleep(2000)
     
     io.println("\n=== Simulation complete ===")
 }

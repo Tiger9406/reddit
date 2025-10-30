@@ -158,6 +158,26 @@ fn engine_actor(
             process.send(state.user_manager, types.UserManagerUserSendDM(username, other_username, content))
             actor.continue(state)
         }
+        types.EngineGetAllComments()->{
+            process.send(state.comment_manager, types.CommentManagerGetAllComments(state.engine_receive))
+            actor.continue(state)
+        }
+        types.EngineGetAllPosts()->{
+            process.send(state.post_manager, types.PostManagerGetAllPosts(state.engine_receive))
+            actor.continue(state)
+        }
+        types.EngineGetAllUsers()->{
+            process.send(state.user_manager, types.UserManagerGetAllUsers(state.engine_receive))
+            actor.continue(state)
+        }
+        types.EngineGetAllSubreddits()->{
+            process.send(state.subreddit_manager, types.SubredditManagerGetAllSubreddits(state.engine_receive))
+            actor.continue(state)
+        }
+        types.EngineGetAllDMs()->{
+            process.send(state.dm_manager, types.DMManagerGetAllDMs(state.engine_receive))
+            actor.continue(state)
+        }
         types.Shutdown -> {
             actor.stop()
         }

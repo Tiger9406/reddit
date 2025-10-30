@@ -129,6 +129,9 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         )
         actor.continue(new_state)
     }
-
+    types.CommentManagerGetAllComments(reply_to)->{
+        process.send(reply_to, types.EngineReceiveAllComments(state))
+        actor.continue(state)
+    }
   }
 }

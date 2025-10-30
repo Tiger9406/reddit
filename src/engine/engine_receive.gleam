@@ -2,6 +2,8 @@
 import gleam/io
 import gleam/otp/actor
 import types
+import gleam/int
+import gleam/dict
 
 
 pub fn engine_receive_actor(
@@ -28,6 +30,31 @@ pub fn engine_receive_actor(
         }
         types.EngineReceivePostDetails(username, post_state)->{
             io.println(username<>" post state: " <> post_state.post_id)
+            actor.continue(state)
+        }
+        types.EngineReceiveAllComments(comment_manager_state)->{
+            io.println("Received all of comment manager; number of comments: ")
+            io.println(int.to_string(comment_manager_state.number_of_comments))
+            actor.continue(state)
+        }
+        types.EngineReceiveAllDMs(dm_manager_state)->{
+            io.println("Received all of dm manager; number of dms: ")
+            io.println(int.to_string(dict.size(dm_manager_state.conversations)))
+            actor.continue(state)
+        }
+        types.EngineReceiveAllPosts(post_manager_state)->{
+            io.println("Received all of post manager; number of posts:")
+            io.println(int.to_string(post_manager_state.number_of_posts))
+            actor.continue(state)
+        }
+        types.EngineReceiveAllSubreddits(subreddit_manager_state)->{
+            io.println("Received all of subreddit manager; number of subreddits:")
+            io.println(int.to_string(subreddit_manager_state.number_of_subreddits))
+            actor.continue(state)
+        }
+        types.EngineReceiveAllUsers(user_manager_state)->{
+            io.println("Received all of user manager; number of users:")
+            io.println(int.to_string(user_manager_state.number_users))
             actor.continue(state)
         }
     }
