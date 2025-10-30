@@ -43,8 +43,9 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
         actor.continue(state)
     }
     //handle messages here
-    _ -> {
-      actor.continue(state)
+    types.SubredditCreatePost(post_id)->{
+      let new_state = types.SubredditState(..state, posts: set.insert(state.posts, post_id))
+      actor.continue(new_state)
     }
   }
 }

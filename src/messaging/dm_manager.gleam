@@ -54,6 +54,7 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                                 new_conversations,
                                 new_subjects
                             )
+                            process.send(subject, types.DMActorSendMessage(from_username, content))
                             actor.continue(new_state)
                         }
                     }
@@ -97,7 +98,8 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                 }
             }
         }
-        _->{
+        types.GetDMConversation(_conversation_id, _reply_to, _username)->{
+            //continue for now
             actor.continue(state)
         }
     }

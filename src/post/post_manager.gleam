@@ -98,8 +98,9 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             }
             actor.continue(state)
         }
-        _ -> {
-            actor.continue(state)
+        types.PostManagerSetUserManager(user_manager_given)->{
+            let new_state = types.PostManagerState(..state, user_manager: Some(user_manager_given))
+            actor.continue(new_state)
         }
     }
 }

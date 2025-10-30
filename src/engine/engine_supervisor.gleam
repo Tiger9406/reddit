@@ -9,7 +9,7 @@ import messaging/dm_manager
 import types
 import gleam/option.{None}
 
-import engine_receive
+import engine/engine_receive
 
 
 
@@ -72,7 +72,7 @@ pub fn start() -> Result(Subject(types.EngineMessage), actor.StartError) {
 
     // Update comment and post managers with user_manager
     process.send(comment_manager_actor.data, types.CommentManagerSetUserManager(user_manager_actor.data))
-    process.send(comment_manager_actor.data, types.CommentManagerSetUserManager(user_manager_actor.data))
+    process.send(comment_manager_actor.data, types.CommentManagerSetPostManager(post_manager_actor.data))
     process.send(post_manager_actor.data, types.PostManagerSetUserManager(user_manager_actor.data))
 
     let assert Ok(engine_receive_actor) = 

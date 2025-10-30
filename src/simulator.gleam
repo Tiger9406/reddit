@@ -8,7 +8,7 @@ import gleam/erlang/process
 import gleam/otp/actor
 import gleam/option.{type Option, None, Some}
 import types
-import engine_supervisor
+import engine/engine_supervisor
 import gleam/set.{type Set}
 
 // ===== SIMULATOR CONFIGURATION =====
@@ -172,10 +172,10 @@ fn user_simulator_actor(
                 False -> actor.continue(state)
                 True -> {
                     // Randomly choose an action
-                    let action = random_range(1, 10)
+                    let action = int.random(10)
                     
                     case action {
-                        1 | 2 | 3 -> {
+                        0 | 1 | 2 -> {
                             // Create post (30% chance)
                             case state.joined_subreddits {
                                 [] -> Nil
@@ -189,11 +189,10 @@ fn user_simulator_actor(
                                     title,
                                     content
                                 ))
-                                io.println(state.username <> " created post in " <> subreddit)
                                 }
                             }
                         }
-                        4 | 5 -> {
+                        3 | 4 | 5 -> {
                             // Upvote random post (20% chance)
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserLikesPost(state.username, post_id))
