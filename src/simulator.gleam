@@ -40,7 +40,8 @@ pub type UserSimulatorState {
         joined_subreddits: List(String),
         is_online: Bool,
         action_count: Int,
-        self_mailbox: Option(process.Subject(UserSimulatorMessage))
+        self_mailbox: Option(process.Subject(UserSimulatorMessage)),
+        skew_factor: Float
     )
 }
 
@@ -114,7 +115,8 @@ pub fn start_simulator(config: SimulatorConfig) -> process.Subject(types.EngineM
             joined_subreddits: [],
             is_online: True,
             action_count: 0,
-            self_mailbox: None
+            self_mailbox: None,
+            skew_factor: config.zipf_exponent
         )
         
         let assert Ok(actor) = actor.new(initial_state)
@@ -151,7 +153,7 @@ fn user_simulator_actor(
             
             // Join subreddits with Zipf bias (more likely to join popular ones)
             let num_to_join = random_range(1, 5)  // Each user joins 1-5 subreddits
-            let subreddits_to_join = select_subreddits_zipf(available_subreddits, num_to_join)
+            let subreddits_to_join = select_subreddits_zipf(available_subreddits, num_to_join, state.skew_factor)
             
             subreddits_to_join |> list.each(fn(subreddit) {
                 process.send(state.engine, types.EngineUserJoinSubreddit(state.username, subreddit))
@@ -259,11 +261,8 @@ fn user_simulator_actor(
 
 // ===== HELPER FUNCTIONS =====
 
-// Select subreddits with Zipf bias (prefer earlier ones in list)
-const skew_factor = 3.0
-
 // Helper function to get a single biased index
-fn get_biased_index(max_index: Int) -> Int {
+fn get_biased_index(max_index: Int, skew_factor: Float) -> Int {
     let r = float.random()
 
     // 2. Apply the power-law skew.
@@ -279,10 +278,10 @@ fn get_biased_index(max_index: Int) -> Int {
 
 // We use a recursive helper function to build up a
 // set of unique indices until we have `target_count`.
-fn find_indices (max_index: Int, chosen: set.Set(Int), target_count) -> Set(Int) {
+fn find_indices (max_index: Int, chosen: set.Set(Int), target_count: Int, skew_index: Float) -> Set(Int) {
     case set.size(chosen) >=target_count{
         True-> chosen
-        False->find_indices(max_index, set.insert(chosen, get_biased_index(max_index)), target_count)
+        False->find_indices(max_index, set.insert(chosen, get_biased_index(max_index, skew_index)), target_count, skew_index)
     }
 }
 // Selects a number of items from a list with a power-law (Zipf-like)
@@ -291,13 +290,14 @@ fn find_indices (max_index: Int, chosen: set.Set(Int), target_count) -> Set(Int)
 pub fn select_subreddits_zipf(
     subreddits: List(String),
     count: Int,
+    skew_factor
 ) -> List(String) {
     let len = list.length(subreddits)
     case len, count{
         0, 0->[]
         _, _->{
             // 1. Start with an empty set and find our target number of indices
-            let indices = find_indices(len - 1, set.new(), int.min(count, len))
+            let indices = find_indices(len - 1, set.new(), int.min(count, len), skew_factor)
 
             // 2. Convert the set of indices into a list
             let index_list = set.to_list(indices)
