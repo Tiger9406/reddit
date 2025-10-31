@@ -76,6 +76,8 @@ pub type SubredditMessage{
     SubredditAddSubscriber(username: String, user_actor: Subject(UserMessage))
     SubredditRemoveSubscriber(username: String, user_actor: Subject(UserMessage))
     SubredditCreatePost(post_id: PostId)
+
+    SubredditPrintNumSubscribers()
 }
 
 pub type SubredditManagerState{

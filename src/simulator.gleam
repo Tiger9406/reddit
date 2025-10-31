@@ -94,7 +94,7 @@ pub fn start_simulator(config: SimulatorConfig) -> process.Subject(types.EngineM
     
     // Create subreddits with Zipf distribution
     io.println("Creating subreddits with Zipf distribution...")
-    let subreddits = generate_subreddits(config.num_subreddits, 10000, config.zipf_exponent)
+    let subreddits = generate_subreddits(config.num_subreddits, config.num_users, config.zipf_exponent)
     
     subreddits |> list.each(fn(subreddit) {
         let #(name, expected_subs) = subreddit
@@ -176,7 +176,6 @@ fn user_simulator_actor(
                     
                     case action {
                         0 | 1 | 2 -> {
-                            // Create post (30% chance)
                             case state.joined_subreddits {
                                 [] -> Nil
                                 subreddits -> {
@@ -193,17 +192,14 @@ fn user_simulator_actor(
                             }
                         }
                         3 | 4 | 5 -> {
-                            // Upvote random post (20% chance)
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserLikesPost(state.username, post_id))
                         }
                         6 -> {
-                            // Downvote random post (10% chance)
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserDislikesPost(state.username, post_id))
                         }
                         7 | 8 -> {
-                            // Create comment (20% chance)
                             let post_id = int.to_string(random_range(1, 100))
                             let content = "Comment from " <> state.username
                             process.send(state.engine, types.EngineUserCreateComment(
@@ -214,7 +210,6 @@ fn user_simulator_actor(
                             ))
                         }
                         9 -> {
-                            // Send DM (10% chance)
                             let other_user = "user_" <> int.to_string(random_range(1, 1000))
                             process.send(state.engine, types.EngineUserSendDM(
                                 state.username,
@@ -262,17 +257,20 @@ fn user_simulator_actor(
 
 // Helper function to get a single biased index
 fn get_biased_index(max_index: Int, skew_factor: Float) -> Int {
+    // Generate Zipf-distributed index
     let r = float.random()
-
-    // 2. Apply the power-law skew.
-    // e.g., r^3.0. This makes small `r` values (like 0.1)
-    // even smaller (0.001), biasing the result toward 0.
-    let assert Ok(skewed_r) = float.power(r, skew_factor)
-
-    // 3. Scale the skewed float to the max index
-    let index_float = skewed_r *. int.to_float(max_index)
-
-    float.round(index_float)
+    let temp = 1.0 /. {r +. 0.01}
+    
+    case float.power(temp, 1.0 /. skew_factor) {
+        Ok(rank_float) -> {
+            let rank = float.round(rank_float)
+            // Convert rank (1-based) to index (0-based)
+            let index = rank - 1
+            // Clamp to valid range
+            int.min(int.max(index, 0), max_index)
+        }
+        Error(_) -> 0
+    }
 }
 
 // We use a recursive helper function to build up a
@@ -331,12 +329,12 @@ pub fn run_simulation() -> Nil {
         num_users: 1000,
         num_subreddits: 100,
         simulation_duration_ms: 10000, 
-        zipf_exponent: 1.0,
+        zipf_exponent: 2.0,
     )
     
     let engine = start_simulator(config)
     
-    io.println("\n=== Simulation running for 60 seconds ===")
+    io.println("\n=== Simulation running for "<> int.to_string(config.simulation_duration_ms/1000)<>" seconds ===")
     process.sleep(config.simulation_duration_ms)
 
     process.send(engine, types.EngineGetAllComments)

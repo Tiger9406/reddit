@@ -16,7 +16,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
                     process.send(post_actor, types.PostGetAll(username, reply_with))
                 }
                 Error(_)->{
-                    io.println("Error, couldn't find post")
+                    Nil
                 }
             }
             actor.continue(state)
@@ -61,7 +61,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
                     }
                 }
                 Error(_)->{
-                    io.println("Error, couldn't find post")
+                    Nil
                 }
             }            
             actor.continue(state)
@@ -80,7 +80,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
                     }
                 }
                 Error(_)->{
-                    io.println("Error, couldn't find post")
+                    Nil
                 }
             }   
             
@@ -93,7 +93,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
                     process.send(post_actor, types.PostAddComment(comment_id))
                 }
                 Error(_)->{
-                    io.println("Error, couldn't find post")
+                    Nil
                 }
             }
             actor.continue(state)

@@ -13,16 +13,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                     let new_downvotes = set.delete(state.downvotes, username)
                     let new_upvotes = set.insert(state.upvotes, username)
                     process.send(user_manager, types.UserManagerUpdateKarma(username, 2))
-                    let new_state = types.CommentState(
-                        state.comment_id,
-                        state.author_username,
-                        state.content,
-                        new_upvotes,
-                        new_downvotes,
-                        state.post,
-                        state.parent,
-                        state.replies,
-                    )
+                    let new_state = types.CommentState(..state, upvotes: new_upvotes, downvotes: new_downvotes)
                     actor.continue(new_state)
                 }
                 False->{
@@ -34,16 +25,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                         False->{
                             let new_upvote = set.insert(state.upvotes, username)
                             process.send(user_manager, types.UserManagerUpdateKarma(username, 1))
-                            let new_state = types.CommentState(
-                                state.comment_id,
-                                state.author_username,
-                                state.content,
-                                new_upvote,
-                                state.downvotes,
-                                state.post,
-                                state.parent,
-                                state.replies,
-                            )
+                            let new_state = types.CommentState(..state, upvotes: new_upvote)
                             actor.continue(new_state)
                         }
                     }
@@ -57,16 +39,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                     let new_upvotes = set.delete(state.upvotes, username)
                     let new_downvotes = set.insert(state.downvotes, username)
                     process.send(user_manager, types.UserManagerUpdateKarma(username, -2))
-                    let new_state = types.CommentState( 
-                        state.comment_id,
-                        state.author_username,
-                        state.content,
-                        new_upvotes,
-                        new_downvotes,
-                        state.post,
-                        state.parent,
-                        state.replies,
-                    )
+                    let new_state = types.CommentState(..state, upvotes: new_upvotes, downvotes: new_downvotes)
                     actor.continue(new_state)
                 }
                 False->{
@@ -78,16 +51,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                         False->{
                             let new_downvote = set.insert(state.downvotes, username)
                             process.send(user_manager, types.UserManagerUpdateKarma(username, -1))
-                            let new_state = types.CommentState(
-                                state.comment_id,
-                                state.author_username,
-                                state.content,
-                                state.upvotes,
-                                new_downvote,
-                                state.post,
-                                state.parent,
-                                state.replies,
-                            )
+                            let new_state = types.CommentState(..state, downvotes: new_downvote)
                             actor.continue(new_state)
                         }
                     }
@@ -96,16 +60,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
         }
         types.CommentAddReply(reply_comment_id) -> {
             let new_replies = set.insert(state.replies, reply_comment_id)
-            let new_state = types.CommentState(
-                state.comment_id,
-                state.author_username,
-                state.content,
-                state.upvotes,
-                state.downvotes,
-                state.post,
-                state.parent,
-                new_replies,
-            )
+            let new_state = types.CommentState(..state, replies: new_replies)
             actor.continue(new_state)
         }
         types.CommentGetAll(username, reply_to) -> {
