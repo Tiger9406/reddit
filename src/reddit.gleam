@@ -12,13 +12,12 @@ import engine/engine_supervisor
 import gleam/set.{type Set}
 import gleam/time/timestamp.{type Timestamp}
 
-
 pub type SimulatorConfig {
     SimulatorConfig(
         num_users: Int,
         num_subreddits: Int,
         simulation_duration_ms: Int,
-        zipf_exponent: Float, 
+        zipf_exponent: Float,
     )
 }
 
@@ -31,7 +30,6 @@ pub type SimulatorState {
     )
 }
 
-
 pub type UserSimulatorState {
     UserSimulatorState(
         username: String,
@@ -41,11 +39,13 @@ pub type UserSimulatorState {
         action_count: Int,
         self_mailbox: Option(Subject(UserSimulatorMessage)),
         skew_factor: Float,
-        metric_actor: Subject(MetricsMessage)
+        metric_actor: Subject(MetricsMessage),
+        coordinator: Subject(CoordinatorMessage),
     )
 }
 
 pub type UserSimulatorMessage {
+    Initialize(coordinator: Subject(CoordinatorMessage))
     StartSimulation(available_subreddits: List(String), self_address_given: Subject(UserSimulatorMessage))
     PerformAction
     GoOffline
@@ -75,6 +75,7 @@ pub type MetricsMessage {
     RecordDM
     RecordSubredditJoin
     RecordSubredditLeave
+    UpdateStartTime(new_start: Timestamp)
     GetMetrics(reply_to: Subject(PerformanceMetrics))
 }
 
@@ -88,6 +89,19 @@ pub type MetricsState {
         dms: Int,
         joins: Int,
         leaves: Int,
+    )
+}
+
+pub type CoordinatorMessage {
+    UserReady(username: String)
+    AllUsersReady(reply_to: Subject(Timestamp))
+}
+
+pub type CoordinatorState {
+    CoordinatorState(
+        ready_users: Set(String),
+        total_users: Int,
+        waiting_for: Option(Subject(Timestamp))
     )
 }
 
@@ -115,6 +129,50 @@ fn generate_subreddits(num_subreddits: Int, base_subscribers: Int, exponent: Flo
     })
 }
 
+fn coordinator_actor(
+    state: CoordinatorState,
+    message: CoordinatorMessage,
+) -> actor.Next(CoordinatorState, CoordinatorMessage) {
+    case message {
+        UserReady(username) -> {
+            let new_ready = set.insert(state.ready_users, username)
+            let ready_count = set.size(new_ready)
+            
+            // Check if all users are ready
+            case ready_count == state.total_users, state.waiting_for {
+                True, Some(reply_to) -> {
+                    io.println("All " <> int.to_string(state.total_users) <> " users ready!")
+                    let start_time = timestamp.system_time()
+                    process.send(reply_to, start_time)
+                    actor.continue(CoordinatorState(..state, ready_users: new_ready))
+                }
+                True, None -> {
+                    actor.continue(CoordinatorState(..state, ready_users: new_ready))
+                }
+                False, _ -> {
+                    case ready_count % 10000 == 0 {
+                        True -> io.println("Users ready: " <> int.to_string(ready_count) <> "/" <> int.to_string(state.total_users))
+                        False -> Nil
+                    }
+                    actor.continue(CoordinatorState(..state, ready_users: new_ready))
+                }
+            }
+        }
+        AllUsersReady(reply_to) -> {
+            case set.size(state.ready_users) == state.total_users {
+                True -> {
+                    let start_time = timestamp.system_time()
+                    process.send(reply_to, start_time)
+                    actor.continue(state)
+                }
+                False -> {
+                    actor.continue(CoordinatorState(..state, waiting_for: Some(reply_to)))
+                }
+            }
+        }
+    }
+}
+
 fn metrics_actor(
     state: MetricsState,
     message: MetricsMessage,
@@ -127,8 +185,13 @@ fn metrics_actor(
         RecordDM -> actor.continue(MetricsState(..state, dms: state.dms + 1))
         RecordSubredditJoin -> actor.continue(MetricsState(..state, joins: state.joins + 1))
         RecordSubredditLeave -> actor.continue(MetricsState(..state, leaves: state.leaves + 1))
+        
+        UpdateStartTime(new_start) -> {
+            actor.continue(MetricsState(..state, start_time: new_start))
+        }
+        
         GetMetrics(reply_to) -> {
-            let total = state.posts + state.comments + state.upvotes + 
+            let total = state.posts + state.comments + state.upvotes +
                        state.downvotes + state.dms + state.joins + state.leaves
             let metrics = PerformanceMetrics(
                 start_time: state.start_time,
@@ -147,15 +210,25 @@ fn metrics_actor(
     }
 }
 
-pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.EngineMessage), process.Subject(MetricsMessage)) {
+pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.EngineMessage), process.Subject(MetricsMessage), Timestamp) {
     io.println("=== Starting Reddit Simulator ===")
     io.println("Users: " <> int.to_string(config.num_users))
     io.println("Subreddits: " <> int.to_string(config.num_subreddits))
     
-    // Start metrics actor
-    let current_time = timestamp.system_time()
+    // Start coordinator
+    let coordinator_state = CoordinatorState(
+        ready_users: set.new(),
+        total_users: config.num_users,
+        waiting_for: None,
+    )
+    let assert Ok(coordinator) = actor.new(coordinator_state)
+        |> actor.on_message(coordinator_actor)
+        |> actor.start()
+    
+    // Start metrics actor (but DON'T set start_time yet)
+    let placeholder_time = timestamp.system_time()
     let metrics_state = MetricsState(
-        start_time: current_time,
+        start_time: placeholder_time,
         posts: 0,
         comments: 0,
         upvotes: 0,
@@ -167,14 +240,14 @@ pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.Engin
     let assert Ok(metrics) = actor.new(metrics_state)
         |> actor.on_message(metrics_actor)
         |> actor.start()
-
+    
     let metric_subject = metrics.data
     
     // Start engine
     io.println("Starting engine...")
     let assert Ok(engine) = engine_supervisor.start()
     
-    // Create subreddits with Zipf distribution
+    // Create subreddits
     io.println("Creating subreddits with Zipf distribution...")
     let subreddits = generate_subreddits(config.num_subreddits, config.num_users, config.zipf_exponent)
     subreddits |> list.each(fn(subreddit) {
@@ -196,49 +269,61 @@ pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.Engin
             action_count: 0,
             self_mailbox: None,
             skew_factor: config.zipf_exponent,
-            metric_actor: metric_subject, 
+            metric_actor: metric_subject,
+            coordinator: coordinator.data,
         )
         let assert Ok(actor) = actor.new(initial_state)
             |> actor.on_message(user_simulator_actor)
             |> actor.start()
+        
+        // Tell each user to initialize
+        process.send(actor.data, Initialize(coordinator.data))
+        
         actor.data
     })
     
-    // Give engine time to create everything
-    process.sleep(100)
+    io.println("Waiting for all users to be ready...")
     
-    // Start user simulations with Zipf-distributed subreddit joining
-    io.println("Users joining subreddits (Zipf distribution)...")
+    // Wait for all users to be ready and get the true start time
+    let ready_subject = process.new_subject()
+    process.send(coordinator.data, AllUsersReady(ready_subject))
+    let assert Ok(true_start_time) = process.receive(ready_subject, 30000) // 30 second timeout
+    
+    // Update metrics with true start time
+    process.send(metric_subject, UpdateStartTime(true_start_time))
+    
+    // NOW start user simulations
+    io.println("Starting user simulations (Zipf distribution)...")
     let subreddit_names = list.map(subreddits, fn(s) { s.0 })
     user_actors |> list.each(fn(user_actor) {
         process.send(user_actor, StartSimulation(subreddit_names, user_actor))
     })
     
     io.println("=== Simulation started! ===")
-    #(engine, metrics.data)
+    #(engine, metrics.data, true_start_time)
 }
-
-// ===== USER SIMULATOR ACTOR LOGIC =====
 
 fn user_simulator_actor(
     state: UserSimulatorState,
     message: UserSimulatorMessage,
 ) -> actor.Next(UserSimulatorState, UserSimulatorMessage) {
     case message {
+        Initialize(coordinator) -> {
+            process.send(coordinator, UserReady(state.username))
+            let new_state = UserSimulatorState(..state, coordinator: coordinator)
+            actor.continue(new_state)
+        }
+        
         StartSimulation(available_subreddits, self_address_given) -> {
             let num_to_join = random_range(1, 5)  // Each user joins 1-5 subreddits
             let subreddits_to_join = select_subreddits_zipf(available_subreddits, num_to_join, state.skew_factor)
-            
             subreddits_to_join |> list.each(fn(subreddit) {
                 process.send(state.engine, types.EngineUserJoinSubreddit(state.username, subreddit))
                 process.send(state.metric_actor, RecordSubredditJoin)
             })
-            
             let new_state = UserSimulatorState(..state, joined_subreddits: subreddits_to_join, self_mailbox: Some(self_address_given))
-            
-            let delay_ms = random_range(20, 100)
+            let delay_ms = random_range(500, 2000)
             process.send_after(self_address_given, delay_ms, PerformAction)
-            
             actor.continue(new_state)
         }
         
@@ -248,9 +333,8 @@ fn user_simulator_actor(
                 True -> {
                     // Randomly choose an action
                     let action = int.random(10)
-                    
                     case action {
-                        0 | 1 | 2 -> {
+                        0 | 1  -> {
                             case state.joined_subreddits {
                                 [] -> Nil
                                 subreddits -> {
@@ -267,17 +351,17 @@ fn user_simulator_actor(
                                 }
                             }
                         }
-                        3 | 4 | 5 -> {
+                        2 | 3  -> {
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserLikesPost(state.username, post_id))
                             process.send(state.metric_actor, RecordUpvote)
                         }
-                        6 -> {
+                        4 | 5 -> {
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserDislikesPost(state.username, post_id))
                             process.send(state.metric_actor, RecordDownvote)
                         }
-                        7 | 8 -> {
+                        6 | 7  -> {
                             let post_id = int.to_string(random_range(1, 100))
                             let content = "Comment from " <> state.username
                             process.send(state.engine, types.EngineUserCreateComment(
@@ -288,7 +372,7 @@ fn user_simulator_actor(
                             ))
                             process.send(state.metric_actor, RecordComment)
                         }
-                        9 -> {
+                        8 | 9 -> {
                             let other_user = "user_" <> int.to_string(random_range(1, 1000))
                             process.send(state.engine, types.EngineUserSendDM(
                                 state.username,
@@ -299,12 +383,10 @@ fn user_simulator_actor(
                         }
                         _ -> Nil
                     }
-                    
                     let new_state = UserSimulatorState(..state, action_count: state.action_count + 1)
-                    
                     case state.self_mailbox{
                         Some(actor)->{
-                            let delay_ms = random_range(50, 500)
+                            let delay_ms = random_range(1000, 3000)
                             process.send_after(actor, delay_ms, PerformAction)
                             Nil
                         }
@@ -333,13 +415,11 @@ fn user_simulator_actor(
     }
 }
 
-
 // Helper function to get a single biased index
 fn get_biased_index(max_index: Int, skew_factor: Float) -> Int {
     // Generate Zipf-distributed index
     let r = float.random()
     let temp = 1.0 /. {r +. 0.01}
-    
     case float.power(temp, 1.0 /. skew_factor) {
         Ok(rank_float) -> {
             let rank = float.round(rank_float)
@@ -352,11 +432,12 @@ fn get_biased_index(max_index: Int, skew_factor: Float) -> Int {
 
 // set of unique indices recursively
 fn find_indices (max_index: Int, chosen: set.Set(Int), target_count: Int, skew_index: Float) -> Set(Int) {
-    case set.size(chosen) >=target_count{
-        True-> chosen
-        False->find_indices(max_index, set.insert(chosen, get_biased_index(max_index, skew_index)), target_count, skew_index)
+    case set.size(chosen) >= target_count{
+        True -> chosen
+        False -> find_indices(max_index, set.insert(chosen, get_biased_index(max_index, skew_index)), target_count, skew_index)
     }
 }
+
 // return list of unique subreddits following zipf
 pub fn select_subreddits_zipf(
     subreddits: List(String),
@@ -365,15 +446,15 @@ pub fn select_subreddits_zipf(
 ) -> List(String) {
     let len = list.length(subreddits)
     case len, count{
-        0, 0->[]
-        _, _->{
+        0, 0 -> []
+        _, _ -> {
             let indices = find_indices(len - 1, set.new(), int.min(count, len), skew_factor)
             let index_list = set.to_list(indices)
-
+            
             let selections = list.filter_map(index_list, fn(i) {
                 list.drop(subreddits, i)|>list.first
             })
-
+            
             selections
         }
     }
@@ -394,10 +475,9 @@ fn random_range(min: Int, max: Int) -> Int {
 fn display_metrics(metrics: PerformanceMetrics, duration_ms: Int) -> Nil {
     let duration_sec = int.to_float(duration_ms) /. 1000.0
     let actions_per_sec = int.to_float(metrics.total_actions) /. duration_sec
-    
-    io.println("\n" <> "=" |> list.repeat(50) |> list.fold("", fn(acc, s) { acc <> s }))
+    io.println("\n" <> "=" |> list.repeat(30) |> list.fold("", fn(acc, s) { acc <> s }))
     io.println("PERFORMANCE METRICS")
-    io.println("=" |> list.repeat(50) |> list.fold("", fn(acc, s) { acc <> s }))
+    io.println("=" |> list.repeat(30) |> list.fold("", fn(acc, s) { acc <> s }))
     io.println("Duration: " <> float.to_string(duration_sec) <> " seconds")
     io.println("")
     io.println("Total Actions: " <> int.to_string(metrics.total_actions))
@@ -410,42 +490,48 @@ fn display_metrics(metrics: PerformanceMetrics, duration_ms: Int) -> Nil {
     io.println("  Subreddit Leaves: " <> int.to_string(metrics.subreddit_leaves))
     io.println("")
     io.println("Throughput: " <> float.to_string(actions_per_sec) <> " actions/second")
-    io.println("=" |> list.repeat(50) |> list.fold("", fn(acc, s) { acc <> s }) <> "\n")
+    io.println("=" |> list.repeat(30) |> list.fold("", fn(acc, s) { acc <> s }) <> "\n")
 }
 
 pub fn run_simulation() -> Nil {
     let config = SimulatorConfig(
-        num_users: 1000,
-        num_subreddits: 100,
-        simulation_duration_ms: 10000,
+        num_users: 10000,
+        num_subreddits: 500,
+        simulation_duration_ms: 20000,
         zipf_exponent: 2.0,
     )
     
-    let #(engine, metrics_actor) = start_simulator(config)
+    let #(engine, metrics_actor, _start_time) = start_simulator(config)
     
     io.println("\n=== Simulation running for " <> int.to_string(config.simulation_duration_ms/1000) <> " seconds ===")
     process.sleep(config.simulation_duration_ms)
     
+    let wait_time = 10000  // 10 seconds
+    
     // Get metrics
     let metrics_subject = process.new_subject()
     process.send(metrics_actor, GetMetrics(metrics_subject))
-    let assert Ok(metrics) = process.receive(metrics_subject, 1000)
+    let assert Ok(metrics) = process.receive(metrics_subject, wait_time)
     
     // Get engine stats
     process.send(engine, types.EngineGetAllComments)
-    process.sleep(500)
-    process.send(engine, types.EngineGetAllDMs)
-    process.sleep(500)
-    process.send(engine, types.EngineGetAllUsers)
-    process.sleep(500)
-    process.send(engine, types.EngineGetAllSubreddits)
-    process.sleep(500)
-    process.send(engine, types.EngineGetAllPosts)
     process.sleep(1000)
-
+    process.send(engine, types.EngineGetAllDMs)
+    process.sleep(1000)
+    process.send(engine, types.EngineGetAllUsers)
+    process.sleep(1000)
+    process.send(engine, types.EngineGetAllSubreddits)
+    process.sleep(1000)
+    io.println("sending over to engine to get all post stuff")
+    process.send(engine, types.EngineGetAllPosts)
+    process.sleep(2000)
+    
     // Display metrics
     display_metrics(metrics, config.simulation_duration_ms)
-    
     process.sleep(2000)
     io.println("\n=== Simulation complete ===")
+}
+
+pub fn main() -> Nil {
+    run_simulation()
 }

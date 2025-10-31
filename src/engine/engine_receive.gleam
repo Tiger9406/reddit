@@ -4,7 +4,6 @@ import gleam/otp/actor
 import types
 import gleam/int
 import gleam/dict
-import gleam/erlang/process
 import gleam/set
 
 pub fn engine_receive_actor(
@@ -51,9 +50,9 @@ pub fn engine_receive_actor(
         types.EngineReceiveAllSubreddits(subreddit_manager_state)->{
             io.println("Received all of subreddit manager; number of subreddits:")
             io.println(int.to_string(subreddit_manager_state.number_of_subreddits))
-            dict.each(subreddit_manager_state.subreddits, fn(_, v) {
-                process.send(v, types.SubredditPrintNumSubscribers)
-            })
+            // dict.each(subreddit_manager_state.subreddits, fn(_, v) {
+            //     process.send(v, types.SubredditPrintNumSubscribers)
+            // })
             actor.continue(state)
         }
         types.EngineReceiveAllUsers(user_manager_state)->{

@@ -72,17 +72,17 @@ Subreddit subscribers follow Zipf's law (exponent = 2.0):
 ## Running the Simulation
 
 ```bash
-gleam run simulator.gleam
+gleam run reddit.gleam
 ```
 
 ### Configuration
 
-Edit `src/simulator.gleam`:
+Edit `src/reddit.gleam`:
 
 ```gleam
 let config = SimulatorConfig(
-    num_users: 1000,
-    num_subreddits: 100,
+    num_users: 10000,
+    num_subreddits: 200,
     simulation_duration_ms: 10000,
     zipf_exponent: 2.0,
 )
@@ -110,12 +110,12 @@ src/
 ├── messaging/
 │   ├── dm_manager.gleam
 │   └── dm_actor.gleam
-├── simulator.gleam                #entry point
+├── reddit.gleam                #entry point
 └── types.gleam  
 ```
 
-## Scalability
+## basic stats
 
-- **Concurrent Users**: Currently tested with 1000 users, scalable to 10,000+
-- **Action Rate**: ~4,000 actions/second sustained throughput
-- **Actor Overhead**: Each entity is lightweight; system can handle 50,000+ concurrent actors
+- **Concurrent Users**: Currently tested with 10,000 users
+- **Action Rate**: ~6,000 actions/second sustained throughput
+- **Actor Overhead**: Each entity is lightweight; system can handle 80,000+ concurrent actors
