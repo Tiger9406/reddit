@@ -82,5 +82,16 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         process.send(reply_to, types.EngineReceiveAllSubreddits(state))
         actor.continue(state)
     }
+    types.SubredditManagerGetLatestPosts(subreddit_name, username, reply_to)->{
+        case dict.get(state.subreddits, subreddit_name) {
+            Ok(subreddit_actor) -> {
+                process.send(subreddit_actor, types.SubredditGetLatestPosts(username, reply_to))
+            }
+            Error(_) -> {
+                io.println("Subreddit not found")
+            }
+        }
+        actor.continue(state)
+    }
   }
 }

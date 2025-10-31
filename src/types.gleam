@@ -29,6 +29,8 @@ pub type UserMessage{
     UserUpdateKarma(delta: Int) //who would be requesting update karma? needed to respond?
     UserPostCreated(post_id: PostId) 
     UserCommentCreated(comment_id: CommentId)
+
+    UserGetFeed(reply_to: Subject(EngineReceiveMessage), subreddit_manager: Subject(SubredditManagerMessage))
 }
 
 pub type UserManagerState{
@@ -43,7 +45,6 @@ pub type UserManagerState{
 }
 
 pub type UserManagerMessage{
-    UserManagerInitialize(subreddit_manager: Subject(SubredditManagerMessage), dm_manager: Subject(DMManagerMessage))
     UserManagerCreateUser(username: Username)
     UserManagerGetUser(username: Username, reply_to: Subject(EngineReceiveMessage))
     
@@ -57,6 +58,7 @@ pub type UserManagerMessage{
     UserManagerUpdateKarma(username: Username, delta: Int)
 
     UserManagerGetAllUsers(reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetUserFeed(username: Username, reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type SubredditState{
@@ -78,6 +80,7 @@ pub type SubredditMessage{
     SubredditCreatePost(post_id: PostId)
 
     SubredditPrintNumSubscribers()
+    SubredditGetLatestPosts(username: Username, reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type SubredditManagerState{
@@ -97,6 +100,7 @@ pub type SubredditManagerMessage{
     SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId)
 
     SubredditManagerGetAllSubreddits(reply_to: Subject(EngineReceiveMessage))
+    SubredditManagerGetLatestPosts(subreddit: SubredditName, username: Username, reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type PostState{
@@ -241,6 +245,8 @@ pub type EngineMessage {
 
     EngineUserSendDM(username: Username, other_username: Username, content: String)
 
+    EngineGetUserFeed(username: Username)
+
     EngineGetAllSubreddits()
     EngineGetAllPosts()
     EngineGetAllComments()
@@ -259,6 +265,7 @@ pub type EngineReceiveMessage{
     EngineReceiveCommentData(username: Username, comment_state: CommentState)
     EngineReceiveSubredditDetails(username: Username, subreddt_state: SubredditState)
     EngineReceivePostDetails(username: Username, post_state: PostState)
+    EngineReceiveUserFeed(username: Username, posts: Set(PostId))
 
     EngineReceiveAllComments(CommentManagerState)
     EngineReceiveAllDMs(DMManagerState)

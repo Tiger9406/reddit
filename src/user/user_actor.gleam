@@ -7,14 +7,7 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
   case message {
     types.UserUpdateKarma(delta) -> {
       let new_karma = state.karma + delta
-      let new_state = types.UserState(
-        state.username,
-        new_karma,
-        state.subscribed_subreddits,
-        state.created_posts,
-        state.created_comments,
-        state.dm_conversations,
-      )
+      let new_state = types.UserState(..state, karma: new_karma)
       actor.continue(new_state)
     }
 
@@ -25,51 +18,29 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
 
     types.UserJoinedSubreddit(subreddit_name) ->{
       let new_subs = set.insert(state.subscribed_subreddits, subreddit_name)
-      let new_state = types.UserState(
-          state.username,
-          state.karma,
-          new_subs,
-          state.created_posts,
-          state.created_comments,
-          state.dm_conversations,
-      )
+      let new_state = types.UserState(..state, subscribed_subreddits: new_subs)
       actor.continue(new_state)
     }
     types.UserLeftSubreddit(subreddit_name) ->{
         let new_subs = set.delete(state.subscribed_subreddits, subreddit_name)
-        let new_state = types.UserState(
-            state.username,
-            state.karma,
-            new_subs,
-            state.created_posts,
-            state.created_comments,
-            state.dm_conversations,
-        )
+        let new_state = types.UserState(..state, subscribed_subreddits: new_subs)
         actor.continue(new_state)
     }
     types.UserPostCreated(post_id) -> {
         let new_posts = set.insert(state.created_posts, post_id)
-        let new_state = types.UserState(
-            state.username,
-            state.karma,
-            state.subscribed_subreddits,
-            new_posts,
-            state.created_comments,
-            state.dm_conversations,
-        )
+        let new_state = types.UserState(..state, created_posts: new_posts)
         actor.continue(new_state)
     }
     types.UserCommentCreated(comment_id) -> {
         let new_comments = set.insert(state.created_comments, comment_id)
-        let new_state = types.UserState(
-            state.username,
-            state.karma,
-            state.subscribed_subreddits,
-            state.created_posts,
-            new_comments,
-            state.dm_conversations,
-        )
+        let new_state = types.UserState(..state, created_comments: new_comments)
         actor.continue(new_state)
+    }
+    types.UserGetFeed(reply_to, subreddit_manager)->{
+      set.each(state.subscribed_subreddits, fn(v){
+        process.send(subreddit_manager, types.SubredditManagerGetLatestPosts(v, state.username, reply_to))
+      })
+      actor.continue(state)
     }
   }
 }

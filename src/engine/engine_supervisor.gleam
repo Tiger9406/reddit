@@ -178,6 +178,10 @@ fn engine_actor(
             process.send(state.dm_manager, types.DMManagerGetAllDMs(state.engine_receive))
             actor.continue(state)
         }
+        types.EngineGetUserFeed(username)->{
+            process.send(state.user_manager, types.UserManagerGetUserFeed(username, state.engine_receive))
+            actor.continue(state)
+        }
         types.Shutdown -> {
             actor.stop()
         }

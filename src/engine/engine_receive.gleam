@@ -5,6 +5,7 @@ import types
 import gleam/int
 import gleam/dict
 import gleam/erlang/process
+import gleam/set
 
 pub fn engine_receive_actor(
     state: types.EngineReceiveState,
@@ -58,6 +59,14 @@ pub fn engine_receive_actor(
         types.EngineReceiveAllUsers(user_manager_state)->{
             io.println("Received all of user manager; number of users:")
             io.println(int.to_string(user_manager_state.number_users))
+            actor.continue(state)
+        }
+        types.EngineReceiveUserFeed(username, user_feed)->{
+            io.println("User "<> username<>" received following posts ")
+            set.each(user_feed, fn(v){
+                io.print(v<>" ")
+            })
+            io.println("")
             actor.continue(state)
         }
     }

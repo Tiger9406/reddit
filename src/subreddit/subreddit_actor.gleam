@@ -39,5 +39,10 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
       io.println("Subreddit "<> state.name <> " has " <> int.to_string(state.number_of_subscribers)<>" subscribers.")
       actor.continue(state)
     }
+    types.SubredditGetLatestPosts(username, reply_to)->{
+      let posts = state.posts
+      process.send(reply_to, types.EngineReceiveUserFeed(username, posts))
+      actor.continue(state)
+    }
   }
 }
