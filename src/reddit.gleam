@@ -41,6 +41,7 @@ pub type UserSimulatorState {
         skew_factor: Float,
         metric_actor: Subject(MetricsMessage),
         coordinator: Subject(CoordinatorMessage),
+        delay_time: Int
     )
 }
 
@@ -210,6 +211,28 @@ fn metrics_actor(
     }
 }
 
+fn calculate_user_activity_delay(rank: Int, max_rank_f: Float, min_delay_f: Float, max_delay_f: Float, exponent: Float) -> Int {
+    case rank <=1 {
+        True-> float.round(min_delay_f)
+        False->{
+            let rank_f = int.to_float(rank)
+            case rank_f >=. max_delay_f{
+                True-> float.round(max_delay_f)
+                False->{
+                    let delay_range = max_delay_f -. min_delay_f
+
+                    let normalized_rank = {rank_f -. 1.0} /. {max_rank_f -. 1.0}
+
+                    let assert Ok(curved_norm) = float.power(normalized_rank, exponent)
+                    let calculated_delay = min_delay_f +. curved_norm *. delay_range
+
+                    float.round(calculated_delay)
+                }
+            }
+        }
+    }
+}
+
 pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.EngineMessage), process.Subject(MetricsMessage), Timestamp) {
     io.println("=== Starting Reddit Simulator ===")
     io.println("Users: " <> int.to_string(config.num_users))
@@ -257,6 +280,8 @@ pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.Engin
     
     // Create users
     io.println("Creating " <> int.to_string(config.num_users) <> " users...")
+    let num_users_f=int.to_float(config.num_users)
+
     let user_actors = list.range(1, config.num_users) |> list.map(fn(user_id) {
         let username = "user_" <> int.to_string(user_id)
         process.send(engine, types.EngineCreateUser(username))
@@ -271,6 +296,7 @@ pub fn start_simulator(config: SimulatorConfig) -> #(process.Subject(types.Engin
             skew_factor: config.zipf_exponent,
             metric_actor: metric_subject,
             coordinator: coordinator.data,
+            delay_time: calculate_user_activity_delay(user_id, num_users_f, 500.0, 5000.0, config.zipf_exponent)
         )
         let assert Ok(actor) = actor.new(initial_state)
             |> actor.on_message(user_simulator_actor)
@@ -322,8 +348,7 @@ fn user_simulator_actor(
                 process.send(state.metric_actor, RecordSubredditJoin)
             })
             let new_state = UserSimulatorState(..state, joined_subreddits: subreddits_to_join, self_mailbox: Some(self_address_given))
-            let delay_ms = random_range(500, 2000)
-            process.send_after(self_address_given, delay_ms, PerformAction)
+            process.send_after(self_address_given, state.delay_time, PerformAction)
             actor.continue(new_state)
         }
         
@@ -332,9 +357,9 @@ fn user_simulator_actor(
                 False -> actor.continue(state)
                 True -> {
                     // Randomly choose an action
-                    let action = int.random(10)
+                    let action = int.random(20)
                     case action {
-                        0 | 1  -> {
+                        0 -> {
                             case state.joined_subreddits {
                                 [] -> Nil
                                 subreddits -> {
@@ -351,17 +376,17 @@ fn user_simulator_actor(
                                 }
                             }
                         }
-                        2 | 3  -> {
+                        1 | 2 | 3 |4  -> {
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserLikesPost(state.username, post_id))
                             process.send(state.metric_actor, RecordUpvote)
                         }
-                        4 | 5 -> {
+                        5|6|7|8 -> {
                             let post_id = int.to_string(random_range(1, 100))
                             process.send(state.engine, types.EngineUserDislikesPost(state.username, post_id))
                             process.send(state.metric_actor, RecordDownvote)
                         }
-                        6 | 7  -> {
+                        9|10|11|12  -> {
                             let post_id = int.to_string(random_range(1, 100))
                             let content = "Comment from " <> state.username
                             process.send(state.engine, types.EngineUserCreateComment(
@@ -372,7 +397,7 @@ fn user_simulator_actor(
                             ))
                             process.send(state.metric_actor, RecordComment)
                         }
-                        8 | 9 -> {
+                        13|14|15|16|17|18 -> {
                             let other_user = "user_" <> int.to_string(random_range(1, 1000))
                             process.send(state.engine, types.EngineUserSendDM(
                                 state.username,
@@ -386,8 +411,7 @@ fn user_simulator_actor(
                     let new_state = UserSimulatorState(..state, action_count: state.action_count + 1)
                     case state.self_mailbox{
                         Some(actor)->{
-                            let delay_ms = random_range(1000, 3000)
-                            process.send_after(actor, delay_ms, PerformAction)
+                            process.send_after(actor, state.delay_time, PerformAction)
                             Nil
                         }
                         None->{
@@ -508,12 +532,10 @@ pub fn run_simulation() -> Nil {
     
     let wait_time = 10000  // 10 seconds
     
-    // Get metrics
     let metrics_subject = process.new_subject()
     process.send(metrics_actor, GetMetrics(metrics_subject))
     let assert Ok(metrics) = process.receive(metrics_subject, wait_time)
     
-    // Get engine stats
     process.send(engine, types.EngineGetAllComments)
     process.sleep(1000)
     process.send(engine, types.EngineGetAllDMs)
@@ -522,9 +544,8 @@ pub fn run_simulation() -> Nil {
     process.sleep(1000)
     process.send(engine, types.EngineGetAllSubreddits)
     process.sleep(1000)
-    io.println("sending over to engine to get all post stuff")
     process.send(engine, types.EngineGetAllPosts)
-    process.sleep(2000)
+    process.sleep(1000)
     
     // Display metrics
     display_metrics(metrics, config.simulation_duration_ms)
