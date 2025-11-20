@@ -10,14 +10,14 @@ import gleam/option.{Some, None}
 
 pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMessage) -> actor.Next(types.PostManagerState, types.PostManagerMessage) {
     case message {
-        types.PostManagerGetPost(post_id, reply_with, username) -> {
+        types.PostManagerGetPost(post_id, reply_with) -> {
             case dict.get(state.posts, post_id){
-                Ok(post_actor)->process.send(post_actor, types.PostGetAll(username, reply_with))
+                Ok(post_actor)->process.send(post_actor, types.PostGetAll(reply_with))
                 Error(_)->Nil
             }
             actor.continue(state)
         }
-        types.PostManagerCreatePost(author_username, subreddit_name, title, content, user_actor) -> {
+        types.PostManagerCreatePost(author_username, subreddit_name, title, content, user_actor, reply_to) -> {
             let new_post_id = state.number_of_posts + 1 //simple way to generate post ids
             let string_id = int.to_string(new_post_id)
             //create post actor
@@ -43,12 +43,12 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             )
             actor.continue(new_state)
         }
-        types.PostManagerUpvote(post_id, username) -> {
+        types.PostManagerUpvote(post_id, username, reply_to) -> {
             //send message to post actor to upvote
             case dict.get(state.posts, post_id){
                 Ok(post_actor)->{
                     case state.user_manager {
-                        Some(user_manager) -> process.send(post_actor, types.PostUpvote(username, user_manager))
+                        Some(user_manager) -> process.send(post_actor, types.PostUpvote(username, user_manager, reply_to))
                         None -> io.println("User manager not set in post manager")
                     }
                 }
@@ -56,12 +56,12 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             }            
             actor.continue(state)
         }
-        types.PostManagerDownvote(post_id, username) -> {
+        types.PostManagerDownvote(post_id, username, reply_to) -> {
             //send message to post actor to downvote
             case dict.get(state.posts, post_id){
                 Ok(post_actor)->{
                     case state.user_manager {
-                        Some(user_manager) -> process.send(post_actor, types.PostDownvote(username, user_manager))
+                        Some(user_manager) -> process.send(post_actor, types.PostDownvote(username, user_manager, reply_to))
                         None -> io.println("User manager not set in post manager")
                     }
                 }
@@ -70,7 +70,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             
             actor.continue(state)
         }
-        types.PostManagerAddCommentToPost(post_id, comment_id) -> {
+        types.PostManagerAddCommentToPost(post_id, comment_id, reply_to) -> {
             //send message to post actor to add comment
             case dict.get(state.posts, post_id){
                 Ok(post_actor)->process.send(post_actor, types.PostAddComment(comment_id))

@@ -30,7 +30,7 @@ pub type UserMessage{
     UserPostCreated(post_id: PostId) 
     UserCommentCreated(comment_id: CommentId)
 
-    UserGetFeed(reply_to: Subject(EngineReceiveMessage), subreddit_manager: Subject(SubredditManagerMessage))
+    UserGetFeed(reply_to: Subject(Result(String, String)), subreddit_manager: Subject(SubredditManagerMessage))
 }
 
 pub type UserManagerState{
@@ -45,20 +45,20 @@ pub type UserManagerState{
 }
 
 pub type UserManagerMessage{
-    UserManagerCreateUser(username: Username)
+    UserManagerCreateUser(username: Username, reply_to: Subject(Result(String, String)))
     UserManagerGetUser(username: Username, reply_to: Subject(EngineReceiveMessage))
     
-    UserManagerUserJoinSubreddit(username: Username, subreddit_name: SubredditName)
-    UserManagerUserLeaveSubreddit(username: Username, subreddit_name: SubredditName)
-    UserManagerUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String)
-    UserManagerUserCreateComment(username: Username, post_id: PostId, comment_id: Option(CommentId), content: String)
-    UserManagerUserUpvotePost(username: Username, post_id: PostId)
-    UserManagerUserDownvotePost(username: Username, post_id: PostId)
-    UserManagerUserSendDM(username: Username, other_username: Username, content: String)
+    UserManagerUserJoinSubreddit(username: Username, subreddit_name: SubredditName, reply_to: Subject(Result(String, String)))
+    UserManagerUserLeaveSubreddit(username: Username, subreddit_name: SubredditName, reply_to: Subject(Result(String, String)))
+    UserManagerUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String, reply_to: Subject(Result(String, String)))
+    UserManagerUserCreateComment(username: Username, post_id: PostId, comment_id: Option(CommentId), content: String, reply_to: Subject(Result(String, String)))
+    UserManagerUserUpvotePost(username: Username, post_id: PostId, reply_to: Subject(Result(String, String)))
+    UserManagerUserDownvotePost(username: Username, post_id: PostId, reply_to: Subject(Result(String, String)))
+    UserManagerUserSendDM(username: Username, other_username: Username, content: String, reply_to: Subject(Result(String, String)))
     UserManagerUpdateKarma(username: Username, delta: Int)
 
-    UserManagerGetAllUsers(reply_to: Subject(EngineReceiveMessage))
-    UserManagerGetUserFeed(username: Username, reply_to: Subject(EngineReceiveMessage))
+    // UserManagerGetAllUsers(reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetUserFeed(username: Username, reply_to: Subject(Result(String, String)))
 }
 
 pub type SubredditState{
@@ -75,12 +75,12 @@ pub type SubredditState{
 pub type SubredditMessage{
     SubredditGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
 
-    SubredditAddSubscriber(username: String, user_actor: Subject(UserMessage))
-    SubredditRemoveSubscriber(username: String, user_actor: Subject(UserMessage))
-    SubredditCreatePost(post_id: PostId)
+    SubredditAddSubscriber(username: String, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    SubredditRemoveSubscriber(username: String, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    SubredditCreatePost(post_id: PostId, reply_to: Subject(Result(String, String)))
 
     SubredditPrintNumSubscribers()
-    SubredditGetLatestPosts(username: Username, reply_to: Subject(EngineReceiveMessage))
+    SubredditGetLatestPosts(reply_to: Subject(Result(String, String)))
 }
 
 pub type SubredditManagerState{
@@ -94,13 +94,13 @@ pub type SubredditManagerState{
 pub type SubredditManagerMessage{
     SubredditManagerGetSubreddit(subreddit_name: SubredditName, reply_to: Subject(EngineReceiveMessage), username: Username)
 
-    SubredditManagerCreateSubreddit(name: SubredditName, description: String)
-    SubredditManagerAddSubscriberToSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage))
-    SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage))    
-    SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId)
+    SubredditManagerCreateSubreddit(name: SubredditName, description: String, reply_to: Subject(Result(String, String)))
+    SubredditManagerAddSubscriberToSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name: SubredditName, username: Username, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))    
+    SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId, reply_to: Subject(Result(String, String)))
 
-    SubredditManagerGetAllSubreddits(reply_to: Subject(EngineReceiveMessage))
-    SubredditManagerGetLatestPosts(subreddit: SubredditName, username: Username, reply_to: Subject(EngineReceiveMessage))
+    // SubredditManagerGetAllSubreddits(reply_to: Subject(EngineReceiveMessage))
+    SubredditManagerGetLatestPosts(subreddit: SubredditName, reply_to: Subject(Result(String, String)))
 }
 
 pub type PostState{
@@ -117,11 +117,11 @@ pub type PostState{
 }
 
 pub type PostMessage{
-    PostUpvote(username: Username, user_manager: Subject(UserManagerMessage))
-    PostDownvote(username: Username, user_manager: Subject(UserManagerMessage))
-    PostGetScore(username: Username, reply_to: Subject(EngineReceiveMessage))
+    PostUpvote(username: Username, user_manager: Subject(UserManagerMessage), reply_to: Subject(Result(String, String)))
+    PostDownvote(username: Username, user_manager: Subject(UserManagerMessage), reply_to: Subject(Result(String, String)))
+    PostGetScore(reply_to: Subject(Result(String, String)))
     PostAddComment(comment_id: CommentId)
-    PostGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
+    PostGetAll(reply_to: Subject(Result(String, String)))
 }
 
 pub type PostManagerState{
@@ -134,14 +134,15 @@ pub type PostManagerState{
 }
 
 pub type PostManagerMessage{
-    PostManagerGetPost(post_id: PostId, reply_to: Subject(EngineReceiveMessage), username: Username)
+    PostManagerGetPost(post_id: PostId, reply_to: Subject(Result(String, String)))
 
     PostManagerSetUserManager(user_manager: Subject(UserManagerMessage))
 
-    PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, title: String, content: String, user_actor: Subject(UserMessage))
-    PostManagerUpvote(post_id: PostId, username: Username)
-    PostManagerDownvote(post_id: PostId, username: Username)
-    PostManagerAddCommentToPost(post_id: PostId, comment_id: CommentId)
+    PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, title: String, content: String, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    PostManagerUpvote(post_id: PostId, username: Username, reply_to: Subject(Result(String, String)))
+    PostManagerDownvote(post_id: PostId, username: Username, reply_to: Subject(Result(String, String)))
+    PostManagerAddCommentToPost(post_id: PostId, comment_id: CommentId, reply_to: Subject(Result(String, String)))
+
 
     PostManagerGetAllPosts(reply_to: Subject(EngineReceiveMessage))
 }
@@ -181,10 +182,10 @@ pub type CommentManagerMessage{
     CommentManagerSetUserManager(user_manager: Subject(UserManagerMessage))
     CommentManagerSetPostManager(post_manager: Subject(PostManagerMessage))
 
-    CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage))
-    CommentManagerUpvoteComment(comment_id: CommentId, username: Username)
-    CommentManagerDownvoteComment(comment_id: CommentId, username: Username)
-    CommentManagerGetAllComments(reply_to: Subject(EngineReceiveMessage))
+    CommentManagerCreateComment(author_username: Username, content: String, post_id: PostId, parent: Option(CommentId), user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    CommentManagerUpvoteComment(comment_id: CommentId, username: Username, reply_to: Subject(Result(String, String)))
+    CommentManagerDownvoteComment(comment_id: CommentId, username: Username, reply_to: Subject(Result(String, String)))
+    CommentManagerGetAllComments(reply_to: Subject(Result(String, String)))
 }
 
 
@@ -205,14 +206,14 @@ pub type DMManagerState{
 
 pub type DMActorMessage{
     DMActorSendMessage(content: String, sender_username: String)
-    DMActorGetMessages(reply_to: Subject(EngineReceiveMessage), from_username: String)
+    DMActorGetMessages(reply_to: Subject(Result(String, String)), from_username: String)
 }
 
 pub type DMManagerMessage{
-    SendDM(username: Username, other_username: Username, content: String)
-    GetDMConversation(conversation_id: DMConversationId, reply_to: Subject(EngineReceiveMessage), username: Username)
-    GetDMConversationBetweenUsers(from_username: Username, to_username: Username, reply_to: Subject(EngineReceiveMessage))
-    DMManagerGetAllDMs(reply_to: Subject(EngineReceiveMessage))
+    SendDM(username: Username, other_username: Username, content: String, reply_to: Subject(Result(String, String)))
+    GetDMConversation(conversation_id: DMConversationId, username: Username, reply_to: Subject(Result(String, String)))
+    GetDMConversationBetweenUsers(from_username: Username, to_username: Username, reply_to: Subject(Result(String, String)))
+    // DMManagerGetAllDMs(reply_to: Subject(EngineReceiveMessage))
 }
 
 pub type EngineState {
@@ -230,28 +231,29 @@ pub type EngineMessage {
     EngineGetUserManager(reply_with: Subject(Subject(UserManagerMessage)))
     EngineGetSubredditManager(reply_with: Subject(Subject(SubredditManagerMessage)))
 
-    EngineCreateUser(username: Username)
-    EngineUserCreateSubreddit(subreddit_name: SubredditName, description: String)
-    EngineUserJoinSubreddit(username: Username, subreddit_name: SubredditName)
-    EngineUserLeaveSubreddit(username: Username, subreddit_name: SubredditName)
+    EngineCreateUser(username: Username, reply_address: Subject(Result(String, String)))
+    EngineUserCreateSubreddit(subreddit_name: SubredditName, description: String, reply_address: Subject(Result(String, String)))
+    EngineUserJoinSubreddit(username: Username, subreddit_name: SubredditName, reply_address: Subject(Result(String, String)))
+    EngineUserLeaveSubreddit(username: Username, subreddit_name: SubredditName, reply_address: Subject(Result(String, String)))
 
-    EngineUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String)
-    EngineUserLikesPost(username: Username, post_id: PostId)
-    EngineUserDislikesPost(username: Username, post_id: PostId)
+    EngineUserCreatePost(username: Username, subreddit_name: SubredditName, title: String, content: String, reply_address: Subject(Result(String, String)))
+    EngineUserLikesPost(username: Username, post_id: PostId, reply_address: Subject(Result(String, String)))
+    EngineUserDislikesPost(username: Username, post_id: PostId, reply_address: Subject(Result(String, String)))
+    EngineUserGetsPost(post_id: PostId, reply_address: Subject(Result(String, String)))
 
-    EngineUserCreateComment(username: Username, post_id: PostId, parent_comment_id: Option(CommentId), content: String)
-    EngineUserUpvotesComment(username: Username, comment_id: CommentId)
-    EngineUserDownvotesComment(username: Username, comment_id: CommentId)
+    EngineUserCreateComment(username: Username, post_id: PostId, parent_comment_id: Option(CommentId), content: String, reply_address: Subject(Result(String, String)))
+    EngineUserUpvotesComment(username: Username, comment_id: CommentId, reply_address: Subject(Result(String, String)))
+    EngineUserDownvotesComment(username: Username, comment_id: CommentId, reply_address: Subject(Result(String, String)))
 
-    EngineUserSendDM(username: Username, other_username: Username, content: String)
+    EngineUserSendDM(username: Username, other_username: Username, content: String, reply_address: Subject(Result(String, String)))
 
-    EngineGetUserFeed(username: Username)
+    EngineGetUserFeed(username: Username, reply_to: Subject(Result(String, String)))
 
-    EngineGetAllSubreddits()
-    EngineGetAllPosts()
-    EngineGetAllComments()
-    EngineGetAllUsers()
-    EngineGetAllDMs()
+    // EngineGetAllSubreddits()
+    // EngineGetAllPosts()
+    // EngineGetAllComments()
+    // EngineGetAllUsers()
+    // EngineGetAllDMs()
 
     Shutdown
 }

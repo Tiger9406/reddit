@@ -38,7 +38,7 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
     }
     types.UserGetFeed(reply_to, subreddit_manager)->{
       set.each(state.subscribed_subreddits, fn(v){
-        process.send(subreddit_manager, types.SubredditManagerGetLatestPosts(v, state.username, reply_to))
+        process.send(subreddit_manager, types.SubredditManagerGetLatestPosts(v, reply_to))
       })
       actor.continue(state)
     }

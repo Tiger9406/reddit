@@ -1,3 +1,4 @@
+import gleam/json
 import types
 import gleam/otp/actor
 import gleam/list
@@ -16,7 +17,10 @@ pub fn dm_actor(state: types.DMActorState, message: types.DMActorMessage) -> act
             actor.continue(new_state)
         }
         types.DMActorGetMessages(reply_to, from_username) -> {
-            process.send(reply_to, types.EngineReceiveDMMessages(from_username, state))
+            process.send(reply_to, Ok(json.to_string(json.array(
+                state.messages,
+                of: json.string
+            ))))
             actor.continue(state)
         }
     }

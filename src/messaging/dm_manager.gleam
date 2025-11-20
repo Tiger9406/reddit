@@ -7,7 +7,7 @@ import messaging/dm_actor.{dm_actor}
 
 pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) -> actor.Next(types.DMManagerState, types.DMManagerMessage) {
     case message{
-        types.SendDM(from_username, to_username, content) -> {
+        types.SendDM(from_username, to_username, content, reply_to) -> {
             let user_pair = #(from_username, to_username)
             let alternative_pair = #(to_username, from_username)
             case dict.get(state.conversations, user_pair){
@@ -100,10 +100,6 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
         }
         types.GetDMConversation(_conversation_id, _reply_to, _username)->{
             //continue for now
-            actor.continue(state)
-        }
-        types.DMManagerGetAllDMs(reply_to)->{
-            process.send(reply_to, types.EngineReceiveAllDMs(state))
             actor.continue(state)
         }
     }

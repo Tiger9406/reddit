@@ -9,7 +9,7 @@ import types.{type UserManagerState, type UserManagerMessage}
 
 pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> actor.Next(UserManagerState, UserManagerMessage) {
   case message {
-    types.UserManagerCreateUser(username) -> {
+    types.UserManagerCreateUser(username, reply_to) -> {
         //create user actor
         let initial_state = types.UserState(
             username,
@@ -24,6 +24,7 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         let new_users = dict.insert(state.users, username, subject)
         let new_number_users = state.number_users + 1
         let new_state = types.UserManagerState(..state, users: new_users, number_users: new_number_users)
+        process.send(reply_to, Ok("User created successfully"))
         actor.continue(new_state)
     }
     types.UserManagerGetUser(username, reply_with) -> {
@@ -33,57 +34,57 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         }
         actor.continue(state)
     }
-    types.UserManagerUserJoinSubreddit(username, subreddit_name) -> {
+    types.UserManagerUserJoinSubreddit(username, subreddit_name, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(actor)->process.send(state.subreddit_manager, types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, actor))
+            Ok(actor)->process.send(state.subreddit_manager, types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, actor, reply_to))
             Error(_)->io.println("actor not found")
         }
         actor.continue(state)
     }
 
-    types.UserManagerUserLeaveSubreddit(username, subreddit_name) -> {
+    types.UserManagerUserLeaveSubreddit(username, subreddit_name, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(actor)->process.send(state.subreddit_manager, types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, actor))
+            Ok(actor)->process.send(state.subreddit_manager, types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, actor, reply_to))
             Error(_)->io.println("actor not found")
         }
         
         actor.continue(state)
     }
-    types.UserManagerUserCreatePost(username, subreddit_name, title, content) -> {
+    types.UserManagerUserCreatePost(username, subreddit_name, title, content, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(actor)->process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor))
+            Ok(actor)->process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor, reply_to))
             Error(_)->io.println("actor not found")
         }
         
         actor.continue(state)
     }
-    types.UserManagerUserCreateComment(username, post_id, comment_id, content) -> {
+    types.UserManagerUserCreateComment(username, post_id, comment_id, content, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(actor)->process.send(state.comment_manager, types.CommentManagerCreateComment(username, post_id, content, comment_id, actor))
+            Ok(actor)->process.send(state.comment_manager, types.CommentManagerCreateComment(username, post_id, content, comment_id, actor, reply_to))
             Error(_)->io.println("actor not found")
         }
         
         actor.continue(state)
     }
-    types.UserManagerUserUpvotePost(username, post_id) -> {
+    types.UserManagerUserUpvotePost(username, post_id, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(_)->process.send(state.post_manager, types.PostManagerUpvote(username, post_id))
+            Ok(_)->process.send(state.post_manager, types.PostManagerUpvote(username, post_id, reply_to))
             Error(_)->io.println("actor not found")
         }
         actor.continue(state)
     }
-    types.UserManagerUserDownvotePost(username, post_id) -> {
+    types.UserManagerUserDownvotePost(username, post_id, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(_)->process.send(state.post_manager, types.PostManagerDownvote(username, post_id))
+            Ok(_)->process.send(state.post_manager, types.PostManagerDownvote(username, post_id, reply_to))
             Error(_)->io.println("actor not found")
         }
         actor.continue(state)
     }
-    types.UserManagerUserSendDM(username, other_username, content) -> {
+    types.UserManagerUserSendDM(username, other_username, content, reply_to) -> {
         case dict.get(state.users, username) {
             Ok(_)->{
                 case dict.get(state.users, other_username){
-                    Ok(_)->process.send(state.dm_manager, types.SendDM(username, other_username, content))
+                    Ok(_)->process.send(state.dm_manager, types.SendDM(username, other_username, content, reply_to))
                     Error(_)-> io.println("can't find other username")
                 }
             }
@@ -112,9 +113,9 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         }
         actor.continue(state)
     }
-    types.UserManagerGetAllUsers(reply_to)->{
-        process.send(reply_to, types.EngineReceiveAllUsers(state))
-        actor.continue(state)
-    }
+    // types.UserManagerGetAllUsers(reply_to)->{
+    //     process.send(reply_to, types.EngineReceiveAllUsers(state))
+    //     actor.continue(state)
+    // }
   }
 }

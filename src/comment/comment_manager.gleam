@@ -12,7 +12,7 @@ import comment/comment_actor.{comment_actor}
 
 pub fn comment_manager(state: types.CommentManagerState, message: types.CommentManagerMessage) -> actor.Next(types.CommentManagerState, types.CommentManagerMessage) {
   case message {
-    types.CommentManagerCreateComment(username, post_id, content, parent, user_actor) -> {
+    types.CommentManagerCreateComment(username, post_id, content, parent, user_actor, reply_to) -> {
         //create comment actor
         let new_number_comments = state.number_of_comments + 1
         let comment_id = new_number_comments
@@ -36,7 +36,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
 
         case state.post_manager {
             Some(post_manager) -> {
-                process.send(post_manager, types.PostManagerAddCommentToPost(post_id, string_id))
+                process.send(post_manager, types.PostManagerAddCommentToPost(post_id, string_id, reply_to))
                 case parent{
                     Some(parent) -> {
                         //send message to parent comment to add reply
@@ -72,7 +72,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         }
         actor.continue(state)
     }
-    types.CommentManagerUpvoteComment(comment_id, username) -> {
+    types.CommentManagerUpvoteComment(comment_id, username, reply_to) -> {
         //send message to comment actor to upvote
         case dict.get(state.comments, comment_id) {
             Ok(comment_actor) -> {
@@ -92,7 +92,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         
         actor.continue(state)
     }
-    types.CommentManagerDownvoteComment(comment_id, username) -> {
+    types.CommentManagerDownvoteComment(comment_id, username, reply_to) -> {
         //send message to comment actor to downvote
         case dict.get(state.comments, comment_id) {
             Ok(comment_actor) -> {
@@ -130,7 +130,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         actor.continue(new_state)
     }
     types.CommentManagerGetAllComments(reply_to)->{
-        process.send(reply_to, types.EngineReceiveAllComments(state))
+        //obsolete now
         actor.continue(state)
     }
   }

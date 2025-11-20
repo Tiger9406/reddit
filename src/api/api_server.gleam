@@ -88,6 +88,32 @@ pub fn handle_request(
   }
 }
 
+fn make_engine_request(
+  state: ApiState,
+  // function: takes a Reply Channel and returns the Engine Message
+  msg_constructor: fn(Subject(Result(t, String))) -> types.EngineMessage,
+  // function: converts the success data into JSON
+  response_mapper: fn(t) -> json.Json,
+) -> Response(String) {
+  let timeout = 3000 // 3 seconds
+  let result = process.call(
+    state.engine, 
+    timeout, 
+    fn(reply_subject) {
+      msg_constructor(reply_subject)
+    }
+  )
+  case result {
+    Ok(data) -> {
+      json_response(
+        200, 
+        success_json("Operation successful", response_mapper(data))
+      )
+    }
+    Error(err_msg) -> json_response(400, error_json(err_msg))
+  }
+}
+
 fn create_user(
   req: Request(mist.Connection),
   state: ApiState,
@@ -105,13 +131,10 @@ fn create_user(
         Ok(result_dict) -> {
           case dict.get(result_dict, "username") {
             Ok(username) -> {
-              process.send(state.engine, types.EngineCreateUser(username))
-              json_response(
-                202,
-                success_json(
-                  "Request accepted, processing",
-                  json.object([#("username", json.string(username))]),
-                ),
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineCreateUser(username, reply) },
+                fn(created_name) { json.object([#("username", json.string(created_name))]) }
               )
             }
             Error(_) -> json_response(400, error_json("couldn't get username"))
@@ -125,7 +148,8 @@ fn create_user(
 }
 
 fn get_user(username: String, state: ApiState) -> Response(String) {
-  todo
+  //to_do
+
 }
 
 fn register_public_key(
@@ -188,19 +212,13 @@ fn create_subreddit(
           let name_result = dict.get(result_dict, "name")
           let desc_result = dict.get(result_dict, "description")
 
+        
           case name_result, desc_result {
             Ok(name), Ok(desc) -> {
-              process.send(
-                state.engine,
-                types.EngineUserCreateSubreddit(name, desc),
-              )
-              // 
-              json_response(
-                202,
-                success_json(
-                  "Create subreddit requested",
-                  json.object([#("subreddit", json.string(name))]),
-                ),
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserCreateSubreddit(name, desc, reply) },
+                fn(created_name) { json.object([#("subreddit", json.string(created_name))]) }
               )
             }
             _, _ ->
@@ -230,20 +248,14 @@ fn join_subreddit(
         Ok(result_dict) -> {
           case dict.get(result_dict, "subreddit_name") {
             Ok(sub_name) -> {
-              process.send(
-                state.engine,
-                types.EngineUserJoinSubreddit(username, sub_name),
-              )
-              // 
-              json_response(
-                202,
-                success_json(
-                  "Join requested",
-                  json.object([
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserJoinSubreddit(username, sub_name, reply) },
+                fn(subreddit_name) { json.object([
                     #("username", json.string(username)),
-                    #("subreddit", json.string(sub_name)),
-                  ]),
-                ),
+                    #("subreddit", json.string(subreddit_name)),
+                  ]) 
+                }
               )
             }
             Error(_) ->
@@ -273,20 +285,14 @@ fn leave_subreddit(
         Ok(result_dict) -> {
           case dict.get(result_dict, "subreddit_name") {
             Ok(sub_name) -> {
-              process.send(
-                state.engine,
-                types.EngineUserLeaveSubreddit(username, sub_name),
-              )
-              // 
-              json_response(
-                202,
-                success_json(
-                  "Leave requested",
-                  json.object([
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserLeaveSubreddit(username, sub_name, reply) },
+                fn(subreddit_name) { json.object([
                     #("username", json.string(username)),
-                    #("subreddit", json.string(sub_name)),
-                  ]),
-                ),
+                    #("subreddit", json.string(subreddit_name)),
+                  ]) 
+                }
               )
             }
             Error(_) ->
@@ -320,14 +326,10 @@ fn create_post(
 
           case user_res, sub_res, title_res, content_res {
             Ok(u), Ok(s), Ok(t), Ok(c) -> {
-              process.send(state.engine, types.EngineUserCreatePost(u, s, t, c))
-              // 
-              json_response(
-                202,
-                success_json(
-                  "Create post requested",
-                  json.object([#("title", json.string(t))]),
-                ),
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserCreatePost(u, s, t, c, reply) },
+                fn(title_returned) { json.object([#("title", json.string(title_returned))]) }
               )
             }
             _, _, _, _ ->
@@ -352,7 +354,6 @@ pub fn upvote_post(
   state: ApiState,
 ) -> Response(String) {
   handle_post_action(req, post_id, state, types.EngineUserLikesPost)
-  // 
 }
 
 pub fn downvote_post(
@@ -361,7 +362,6 @@ pub fn downvote_post(
   state: ApiState,
 ) -> Response(String) {
   handle_post_action(req, post_id, state, types.EngineUserDislikesPost)
-  // 
 }
 
 // Helper for post upvote/downvote to reduce duplication
@@ -369,7 +369,7 @@ fn handle_post_action(
   req: Request(mist.Connection),
   post_id: String,
   state: ApiState,
-  msg_constructor: fn(String, String) -> types.EngineMessage,
+  msg_constructor: fn(String, String, Subject(Result(a, String))) -> types.EngineMessage,
 ) -> Response(String) {
   case mist.read_body(req, 1_048_576) {
     Ok(req_with_body) -> {
@@ -382,8 +382,11 @@ fn handle_post_action(
         Ok(result_dict) -> {
           case dict.get(result_dict, "username") {
             Ok(username) -> {
-              process.send(state.engine, msg_constructor(username, post_id))
-              json_response(202, success_json("Action accepted", json.null()))
+              make_engine_request(
+                state,
+                fn(reply) { msg_constructor(username, post_id, reply) },
+                fn(_) { json.null() }
+              )
             }
             Error(_) -> json_response(400, error_json("Missing 'username'"))
           }
@@ -396,8 +399,18 @@ fn handle_post_action(
 }
 
 pub fn get_post(post_id: types.PostId, state: ApiState) -> Response(String) {
-  todo
-  //gotta implement here and in engine
+  make_engine_request(
+    state,
+    fn(reply) { types.EngineUserGetsPost(post_id, reply) },
+    fn(post_data) {
+      //todo
+      //convert post_data to json
+      json.object([
+        #("post_id", json.string(post_id)),
+        // add other post fields here
+      ])
+    }
+  )
 }
 
 pub fn create_comment(
@@ -420,14 +433,16 @@ pub fn create_comment(
 
           case user_res, post_res, parent_res, content_res {
             Ok(u), Ok(pid), Ok(parent), Ok(c) -> {
-              process.send(
-                state.engine,
-                types.EngineUserCreateComment(u, pid, Some(parent), c),
-              )
-              // 
-              json_response(
-                202,
-                success_json("Create comment requested", json.null()),
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserCreateComment(u, pid, Some(parent), c, reply) },
+                fn(comment_data) {
+                  //todo
+                  //convert comment_data to json
+                  json.object([
+                    #("comment_id", json.string(comment_data)),
+                  ])
+                }
               )
             }
             _, _, _, _ ->
@@ -452,7 +467,6 @@ pub fn upvote_comment(
   state: ApiState,
 ) -> Response(String) {
   handle_comment_action(req, comment_id, state, types.EngineUserUpvotesComment)
-  // 
 }
 
 pub fn downvote_comment(
@@ -460,13 +474,7 @@ pub fn downvote_comment(
   comment_id: String,
   state: ApiState,
 ) -> Response(String) {
-  handle_comment_action(
-    req,
-    comment_id,
-    state,
-    types.EngineUserDownvotesComment,
-  )
-  // 
+  handle_comment_action(req, comment_id, state, types.EngineUserDownvotesComment)
 }
 
 // helper for comment actions
@@ -474,7 +482,7 @@ fn handle_comment_action(
   req: Request(mist.Connection),
   comment_id: String,
   state: ApiState,
-  msg_constructor: fn(String, String) -> types.EngineMessage,
+  msg_constructor: fn(String, String, Subject(Result(String, String))) -> types.EngineMessage,
 ) -> Response(String) {
   case mist.read_body(req, 1_048_576) {
     Ok(req_with_body) -> {
@@ -486,9 +494,13 @@ fn handle_comment_action(
       {
         Ok(result_dict) -> {
           case dict.get(result_dict, "username") {
+            
             Ok(username) -> {
-              process.send(state.engine, msg_constructor(username, comment_id))
-              json_response(202, success_json("Action accepted", json.null()))
+              make_engine_request(
+                state,
+                fn(reply) { msg_constructor(username, comment_id, reply) },
+                fn(_) { json.null() }
+              )
             }
             Error(_) -> json_response(400, error_json("Missing 'username'"))
           }
@@ -519,12 +531,11 @@ pub fn send_dm(
 
           case from_res, to_res, content_res {
             Ok(from), Ok(to), Ok(content) -> {
-              process.send(
-                state.engine,
-                types.EngineUserSendDM(from, to, content),
+              make_engine_request(
+                state,
+                fn(reply) { types.EngineUserSendDM(from, to, content, reply) },
+                fn(_) { json.null() }
               )
-              // 
-              json_response(202, success_json("DM queued", json.null()))
             }
             _, _, _ ->
               json_response(
@@ -541,7 +552,7 @@ pub fn send_dm(
 }
 
 fn get_user_feed(username: String, state: ApiState) -> Response(String) {
-  process.send(state.engine, types.EngineGetUserFeed(username))
+  //todo
 
   json_response(
     202,

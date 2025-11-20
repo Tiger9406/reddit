@@ -114,72 +114,56 @@ fn engine_actor(
             process.send(reply_with, state.subreddit_manager)
             actor.continue(state)
         }
-        types.EngineCreateUser(username) -> {
-            process.send(state.user_manager, types.UserManagerCreateUser(username))
+        types.EngineCreateUser(username, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerCreateUser(username, reply_address))
             actor.continue(state)
         }
-        types.EngineUserCreateSubreddit(subreddit_name, description) -> {
-            process.send(state.subreddit_manager, types.SubredditManagerCreateSubreddit(subreddit_name, description))
+        types.EngineUserCreateSubreddit(subreddit_name, description, reply_address) -> {
+            process.send(state.subreddit_manager, types.SubredditManagerCreateSubreddit(subreddit_name, description, reply_address))
             actor.continue(state)
         }
-        types.EngineUserJoinSubreddit(username, subreddit_name) -> {
-            process.send(state.user_manager, types.UserManagerUserJoinSubreddit(username, subreddit_name))
+        types.EngineUserJoinSubreddit(username, subreddit_name, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerUserJoinSubreddit(username, subreddit_name, reply_address))
             actor.continue(state)
         }
-        types.EngineUserLeaveSubreddit(username, subreddit_name) -> {
-            process.send(state.user_manager, types.UserManagerUserLeaveSubreddit(username, subreddit_name))
+        types.EngineUserLeaveSubreddit(username, subreddit_name, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerUserLeaveSubreddit(username, subreddit_name, reply_address))
             actor.continue(state)
         }
-        types.EngineUserCreatePost(username, subreddit_name, title, content) -> {
-            process.send(state.user_manager, types.UserManagerUserCreatePost(username, subreddit_name, title, content))
+        types.EngineUserCreatePost(username, subreddit_name, title, content, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerUserCreatePost(username, subreddit_name, title, content, reply_address))
             actor.continue(state)
         }
-        types.EngineUserLikesPost(username, post_id) -> {
-            process.send(state.post_manager, types.PostManagerUpvote(post_id, username))
+        types.EngineUserGetsPost(post_id, reply_address) -> {
+            process.send(state.post_manager, types.PostManagerGetPost(post_id, reply_address))
             actor.continue(state)
         }
-        types.EngineUserDislikesPost(username, post_id) -> {
-            process.send(state.post_manager, types.PostManagerDownvote(post_id, username))
+        types.EngineUserLikesPost(username, post_id, reply_address) -> {
+            process.send(state.post_manager, types.PostManagerUpvote(post_id, username, reply_address))
             actor.continue(state)
         }
-        types.EngineUserCreateComment(username, post_id, parent_comment_id, content) -> {
-            process.send(state.user_manager, types.UserManagerUserCreateComment(username, post_id, parent_comment_id, content))
+        types.EngineUserDislikesPost(username, post_id, reply_address) -> {
+            process.send(state.post_manager, types.PostManagerDownvote(post_id, username, reply_address))
             actor.continue(state)
         }
-        types.EngineUserUpvotesComment(username, comment_id) -> {
-            process.send(state.comment_manager, types.CommentManagerUpvoteComment(comment_id, username))
+        types.EngineUserCreateComment(username, post_id, parent_comment_id, content, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerUserCreateComment(username, post_id, parent_comment_id, content, reply_address))
             actor.continue(state)
         }
-        types.EngineUserDownvotesComment(username, comment_id) -> {
-            process.send(state.comment_manager, types.CommentManagerDownvoteComment(comment_id, username))
+        types.EngineUserUpvotesComment(username, comment_id, reply_address) -> {
+            process.send(state.comment_manager, types.CommentManagerUpvoteComment(comment_id, username, reply_address))
             actor.continue(state)
         }
-        types.EngineUserSendDM(username, other_username, content) -> {
-            process.send(state.user_manager, types.UserManagerUserSendDM(username, other_username, content))
+        types.EngineUserDownvotesComment(username, comment_id, reply_address) -> {
+            process.send(state.comment_manager, types.CommentManagerDownvoteComment(comment_id, username, reply_address))
             actor.continue(state)
         }
-        types.EngineGetAllComments()->{
-            process.send(state.comment_manager, types.CommentManagerGetAllComments(state.engine_receive))
+        types.EngineUserSendDM(username, other_username, content, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerUserSendDM(username, other_username, content, reply_address))
             actor.continue(state)
         }
-        types.EngineGetAllPosts()->{
-            process.send(state.post_manager, types.PostManagerGetAllPosts(state.engine_receive))
-            actor.continue(state)
-        }
-        types.EngineGetAllUsers()->{
-            process.send(state.user_manager, types.UserManagerGetAllUsers(state.engine_receive))
-            actor.continue(state)
-        }
-        types.EngineGetAllSubreddits()->{
-            process.send(state.subreddit_manager, types.SubredditManagerGetAllSubreddits(state.engine_receive))
-            actor.continue(state)
-        }
-        types.EngineGetAllDMs()->{
-            process.send(state.dm_manager, types.DMManagerGetAllDMs(state.engine_receive))
-            actor.continue(state)
-        }
-        types.EngineGetUserFeed(username)->{
-            process.send(state.user_manager, types.UserManagerGetUserFeed(username, state.engine_receive))
+        types.EngineGetUserFeed(username, reply_to)->{
+            process.send(state.user_manager, types.UserManagerGetUserFeed(username, reply_to))
             actor.continue(state)
         }
         types.Shutdown -> {

@@ -12,7 +12,7 @@ import subreddit/subreddit_actor.{subreddit_actor}
 pub fn subreddit_manager(state: types.SubredditManagerState, message: types.SubredditManagerMessage) -> actor.Next(types.SubredditManagerState, types.SubredditManagerMessage) {
   case message {
     //handle messages here
-    types.SubredditManagerCreateSubreddit(name, description) -> {
+    types.SubredditManagerCreateSubreddit(name, description, reply_to) -> {
         //create subreddit actor
         let initial_state = types.SubredditState(
             name,
@@ -44,11 +44,11 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         }
         actor.continue(state)
     }
-    types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, user_actor) -> {
+    types.SubredditManagerAddSubscriberToSubreddit(subreddit_name, username, user_actor, reply_to) -> {
         //send message to subreddit actor to add subscriber
         case dict.get(state.subreddits, subreddit_name) {
             Ok(subreddit_actor) -> {
-                process.send(subreddit_actor, types.SubredditAddSubscriber(username, user_actor))
+                process.send(subreddit_actor, types.SubredditAddSubscriber(username, user_actor, reply_to))
             }
             Error(_) -> {
                 io.println("Subreddit not found")
@@ -56,10 +56,10 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         }
         actor.continue(state)
     }
-    types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, user_actor) -> {
+    types.SubredditManagerRemoveSubscriberFromSubreddit(subreddit_name, username, user_actor, reply_to) -> {
         case dict.get(state.subreddits, subreddit_name) {
             Ok(subreddit_actor) -> {
-                process.send(subreddit_actor, types.SubredditRemoveSubscriber(username, user_actor))
+                process.send(subreddit_actor, types.SubredditRemoveSubscriber(username, user_actor, reply_to))
             }
             Error(_) -> {
                 io.println("Subreddit not found")
@@ -67,10 +67,10 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         }
         actor.continue(state)
     }
-    types.SubredditManagerCreatedPostInSubreddit(subreddit_name, post_id) -> {
+    types.SubredditManagerCreatedPostInSubreddit(subreddit_name, post_id, reply_to) -> {
         case dict.get(state.subreddits, subreddit_name) {
             Ok(subreddit_actor) -> {
-                process.send(subreddit_actor, types.SubredditCreatePost(post_id))
+                process.send(subreddit_actor, types.SubredditCreatePost(post_id, reply_to))
             }
             Error(_) -> {
                 io.println("Subreddit not found")
@@ -78,14 +78,11 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
         }
         actor.continue(state)
     }
-    types.SubredditManagerGetAllSubreddits(reply_to)->{
-        process.send(reply_to, types.EngineReceiveAllSubreddits(state))
-        actor.continue(state)
-    }
-    types.SubredditManagerGetLatestPosts(subreddit_name, username, reply_to)->{
+
+    types.SubredditManagerGetLatestPosts(subreddit_name, reply_to)->{
         case dict.get(state.subreddits, subreddit_name) {
             Ok(subreddit_actor) -> {
-                process.send(subreddit_actor, types.SubredditGetLatestPosts(username, reply_to))
+                process.send(subreddit_actor, types.SubredditGetLatestPosts(reply_to))
             }
             Error(_) -> {
                 io.println("Subreddit not found")
