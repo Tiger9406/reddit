@@ -62,17 +62,9 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
           result.unwrap(call_result, [])
         })
         |> list.flatten()
-      // 4. Convert the aggregated list to JSON
-      let json_response =
-        json.object([
-          #("username", json.string(state.username)),
-          #("feed", json.array(all_post_ids, of: json.string)),
-          #("source_subreddits", json.int(list.length(subreddits))),
-        ])
-        |> json.to_string
 
       // 5. Send final response to API
-      process.send(reply_to, Ok(json_response))
+      process.send(reply_to, Ok(all_post_ids))
       actor.continue(state)
     }
   }

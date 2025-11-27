@@ -30,7 +30,7 @@ pub type UserMessage{
     UserPostCreated(post_id: PostId) 
     UserCommentCreated(comment_id: CommentId)
 
-    UserGetFeed(reply_to: Subject(Result(String, String)), subreddit_manager: Subject(SubredditManagerMessage))
+    UserGetFeed(reply_to: Subject(Result(List(String), String)), subreddit_manager: Subject(SubredditManagerMessage))
 }
 
 pub type UserManagerState{
@@ -58,7 +58,7 @@ pub type UserManagerMessage{
     UserManagerUpdateKarma(username: Username, delta: Int)
 
     // UserManagerGetAllUsers(reply_to: Subject(EngineReceiveMessage))
-    UserManagerGetUserFeed(username: Username, reply_to: Subject(Result(String, String)))
+    UserManagerGetUserFeed(username: Username, reply_to: Subject(Result(List(String), String)))
 }
 
 pub type SubredditState{
@@ -248,7 +248,7 @@ pub type EngineMessage {
 
     EngineUserSendDM(username: Username, other_username: Username, content: String, reply_address: Subject(Result(String, String)))
 
-    EngineGetUserFeed(username: Username, reply_to: Subject(Result(String, String)))
+    EngineGetUserFeed(username: Username, reply_to: Subject(Result(List(String), String)))
 
     // EngineGetAllSubreddits()
     // EngineGetAllPosts()

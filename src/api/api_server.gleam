@@ -8,6 +8,7 @@ import gleam/http/response.{type Response}
 import gleam/json
 import gleam/option.{Some}
 import gleam/string
+import gleam/list
 import mist
 
 import types
@@ -149,7 +150,7 @@ fn create_user(
 
 fn get_user(username: String, state: ApiState) -> Response(String) {
   //to_do
-
+  
 }
 
 fn register_public_key(
@@ -552,13 +553,16 @@ pub fn send_dm(
 }
 
 fn get_user_feed(username: String, state: ApiState) -> Response(String) {
-  //todo
-
-  json_response(
-    202,
-    success_json(
-      "Feed generation requested; check engine simulator logs/output",
-      json.object([#("username", json.string(username))]),
-    ),
+  make_engine_request(
+    state,
+    fn(reply) { types.EngineGetUserFeed(username, reply) },
+    // convert list(string) to json
+    fn(feed_list) {
+      json.object([
+        #("username", json.string(username)),
+        #("feed", json.array(feed_list, of: json.string)),
+        #("count", json.int(list.length(feed_list)))
+      ])
+    }
   )
 }
