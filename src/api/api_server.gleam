@@ -150,13 +150,20 @@ fn create_user(
 
 fn get_user(username: String, state: ApiState) -> Response(String) {
   //to_do
-  
+  make_engine_request(
+    state,
+    fn(reply) { types.EngineGetUser(username, reply) },
+    fn(user_data) {
+      //convert user_data to json
+      json.string(user_data)
+    }
+  )
 }
 
 fn register_public_key(
   req: Request(mist.Connection),
   username: String,
-  state: ApiState,
+  _state: ApiState,
 ) -> Response(String) {
   case mist.read_body(req, 1_048_576) {
     Ok(req_with_body) -> {
