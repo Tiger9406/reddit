@@ -100,7 +100,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
             }
         }
     }
-    types.PostAddComment(comment_id) -> {
+    types.PostAddComment(comment_id, reply_to) -> {
         let new_comments = set.insert(state.comments, comment_id)
         let new_state = types.PostState(
             state.post_id,
@@ -112,6 +112,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
             state.downvotes,
             new_comments,
         )
+        process.send(reply_to, Ok("Comment added to post successfully"))
         actor.continue(new_state)
     }
     types.PostGetAll(reply_to) -> {

@@ -30,6 +30,7 @@ pub fn subreddit_manager(state: types.SubredditManagerState, message: types.Subr
             state.number_of_subreddits + 1,
             state.post_manager,
         )
+        process.send(reply_to, Ok("Subreddit created successfully"))
         actor.continue(new_state)
     }
     types.SubredditManagerGetSubreddit(name, reply_to, username) -> {

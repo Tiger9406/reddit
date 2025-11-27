@@ -35,6 +35,16 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
     }
     //handle messages here
     types.SubredditCreatePost(post_id, reply_to)->{
+      let post = set.contains(state.posts, post_id)
+      case post{
+        True->{
+          reply_to |> process.send(Error("Post "<> post_id <>" already exists in subreddit "<> state.name))
+        }
+        False->{
+          reply_to |> process.send(Ok("Post "<> post_id <>" added to subreddit "<> state.name))
+        }
+      }
+
       let new_state = types.SubredditState(..state, posts: set.insert(state.posts, post_id))
       actor.continue(new_state)
     }

@@ -120,7 +120,7 @@ pub type PostMessage{
     PostUpvote(username: Username, user_manager: Subject(UserManagerMessage), reply_to: Subject(Result(String, String)))
     PostDownvote(username: Username, user_manager: Subject(UserManagerMessage), reply_to: Subject(Result(String, String)))
     PostGetScore(reply_to: Subject(Result(String, String)))
-    PostAddComment(comment_id: CommentId)
+    PostAddComment(comment_id: CommentId, reply_to: Subject(Result(String, String)))
     PostGetAll(reply_to: Subject(Result(String, String)))
 }
 
@@ -138,7 +138,7 @@ pub type PostManagerMessage{
 
     PostManagerSetUserManager(user_manager: Subject(UserManagerMessage))
 
-    PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, title: String, content: String, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
+    PostManagerCreatePost(author_username: Username, subreddit_name: SubredditName, subreddit_manager: Subject(SubredditManagerMessage), title: String, content: String, user_actor: Subject(UserMessage), reply_to: Subject(Result(String, String)))
     PostManagerUpvote(post_id: PostId, username: Username, reply_to: Subject(Result(String, String)))
     PostManagerDownvote(post_id: PostId, username: Username, reply_to: Subject(Result(String, String)))
     PostManagerAddCommentToPost(post_id: PostId, comment_id: CommentId, reply_to: Subject(Result(String, String)))

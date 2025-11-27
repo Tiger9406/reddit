@@ -52,7 +52,8 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
     }
     types.UserManagerUserCreatePost(username, subreddit_name, title, content, reply_to) -> {
         case dict.get(state.users, username){
-            Ok(actor)->process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, title, content, actor, reply_to))
+            Ok(actor)->process.send(state.post_manager, types.PostManagerCreatePost(username, subreddit_name, state.subreddit_manager, title, content, actor, reply_to))
+
             Error(_)->io.println("actor not found")
         }
         
@@ -113,9 +114,5 @@ pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> act
         }
         actor.continue(state)
     }
-    // types.UserManagerGetAllUsers(reply_to)->{
-    //     process.send(reply_to, types.EngineReceiveAllUsers(state))
-    //     actor.continue(state)
-    // }
   }
 }

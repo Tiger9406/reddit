@@ -192,7 +192,7 @@ fn register_public_key(
 }
 
 fn get_public_key(username: String, state: ApiState) -> Response(String) {
-  todo
+  //todo
   //retrieve key & return
 }
 

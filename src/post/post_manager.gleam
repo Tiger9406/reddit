@@ -17,7 +17,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             }
             actor.continue(state)
         }
-        types.PostManagerCreatePost(author_username, subreddit_name, title, content, user_actor, reply_to) -> {
+        types.PostManagerCreatePost(author_username, subreddit_name, subreddit_manager, title, content, user_actor, reply_to) -> {
             let new_post_id = state.number_of_posts + 1 //simple way to generate post ids
             let string_id = int.to_string(new_post_id)
             //create post actor
@@ -33,15 +33,27 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
             )
             let assert Ok(actor) = actor.new(initial_state) |> actor.on_message(post_actor) |> actor.start()
             let subject = actor.data
-            process.send(user_actor, types.UserPostCreated(string_id))
-            let new_posts = dict.insert(state.posts, string_id, subject)
-            let new_state = types.PostManagerState(
-                new_posts,
-                state.number_of_posts + 1,
-                state.comment_manager,
-                state.user_manager,
-            )
-            actor.continue(new_state)
+            
+            let calling = process.call(subreddit_manager, 300, types.SubredditManagerCreatedPostInSubreddit(subreddit_name, string_id, _))
+            case calling {
+                Ok(_) -> {
+                    process.send(user_actor, types.UserPostCreated(string_id))
+                    let new_posts = dict.insert(state.posts, string_id, subject)
+                    let new_state = types.PostManagerState(
+                        new_posts,
+                        state.number_of_posts + 1,
+                        state.comment_manager,
+                        state.user_manager,
+                    )
+                    process.send(reply_to, Ok("Post made "<> string_id))
+                    actor.continue(new_state)
+                }
+                Error(_) -> {
+                    process.send(reply_to, Error("Failed to create post in subreddit"))
+                    actor.continue(state)
+                }
+            }
+            
         }
         types.PostManagerUpvote(post_id, username, reply_to) -> {
             //send message to post actor to upvote
@@ -73,7 +85,7 @@ pub fn post_manager(state: types.PostManagerState, message: types.PostManagerMes
         types.PostManagerAddCommentToPost(post_id, comment_id, reply_to) -> {
             //send message to post actor to add comment
             case dict.get(state.posts, post_id){
-                Ok(post_actor)->process.send(post_actor, types.PostAddComment(comment_id))
+                Ok(post_actor)->process.send(post_actor, types.PostAddComment(comment_id, reply_to))
                 Error(_)->Nil
             }
             actor.continue(state)
