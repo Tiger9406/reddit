@@ -16,7 +16,7 @@ pub fn dm_actor(state: types.DMActorState, message: types.DMActorMessage) -> act
             )
             actor.continue(new_state)
         }
-        types.DMActorGetMessages(reply_to, from_username) -> {
+        types.DMActorGetMessages(reply_to, _from_username) -> {
             process.send(reply_to, Ok(json.to_string(json.array(
                 state.messages,
                 of: json.string

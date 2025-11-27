@@ -79,6 +79,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
                 case state.user_manager {
                     Some(user_manager) -> {
                         process.send(comment_actor, types.CommentUpvote(username, user_manager))
+                        process.send(reply_to, Ok("Comment upvote sent"))
                     }
                     None -> {
                         io.println("User manager not set in comment manager")
@@ -99,6 +100,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
                 case state.user_manager {
                     Some(user_manager) -> {
                         process.send(comment_actor, types.CommentDownvote(username, user_manager))
+                        process.send(reply_to, Ok("Comment downvote sent"))
                     }
                     None -> {
                         io.println("User manager not set in comment manager")

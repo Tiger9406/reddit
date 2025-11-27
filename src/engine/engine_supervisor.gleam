@@ -118,6 +118,10 @@ fn engine_actor(
             process.send(state.user_manager, types.UserManagerCreateUser(username, reply_address))
             actor.continue(state)
         }
+        types.EngineGetUser(username, reply_address) -> {
+            process.send(state.user_manager, types.UserManagerGetUser(username, reply_address))
+            actor.continue(state)
+        }
         types.EngineUserCreateSubreddit(subreddit_name, description, reply_address) -> {
             process.send(state.subreddit_manager, types.SubredditManagerCreateSubreddit(subreddit_name, description, reply_address))
             actor.continue(state)

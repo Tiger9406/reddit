@@ -1,6 +1,5 @@
 
 //sends back to user manager user id and post id once subreddit joined
-import gleam/json
 import types
 import gleam/otp/actor
 import gleam/erlang/process
@@ -54,11 +53,7 @@ pub fn subreddit_actor(state: types.SubredditState, message: types.SubredditMess
     }
     types.SubredditGetLatestPosts(reply_to)->{
       let posts = state.posts
-      process.send(reply_to, 
-        Ok(json.to_string(json.array(
-          set.to_list(posts), of: json.string
-        )))
-      )
+      process.send(reply_to, Ok(set.to_list(posts)))
       actor.continue(state)
     }
   }

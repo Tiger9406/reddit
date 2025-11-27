@@ -17,9 +17,11 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                     case dm_actor {
                         Ok(dm_actor) -> {
                             process.send(dm_actor, types.DMActorSendMessage(from_username, content))
+                            process.send(reply_to, Ok("Message sent"))
                             actor.continue(state)
                         }
                         Error(_) -> {
+                            process.send(reply_to, Error("DM Actor not found"))
                             actor.continue(state)
                         }
                     }
@@ -31,6 +33,7 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                             case dm_actor {
                                 Ok(dm_actor) -> {
                                     process.send(dm_actor, types.DMActorSendMessage(from_username, content))
+                                    process.send(reply_to, Ok("Message sent"))
                                     actor.continue(state)
                                 }
                                 Error(_) -> {
@@ -55,6 +58,7 @@ pub fn dm_manager(state: types.DMManagerState, message: types.DMManagerMessage) 
                                 new_subjects
                             )
                             process.send(subject, types.DMActorSendMessage(from_username, content))
+                            process.send(reply_to, Ok("Message sent"))
                             actor.continue(new_state)
                         }
                     }

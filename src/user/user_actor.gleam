@@ -2,6 +2,9 @@ import gleam/otp/actor
 import types.{type UserMessage, type UserState}
 import gleam/set
 import gleam/erlang/process
+import gleam/list
+import gleam/json
+import gleam/result
 
 pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserState, UserMessage) {
   case message {
@@ -11,8 +14,14 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
       actor.continue(new_state)
     }
 
-    types.UserGetAll(username, reply_to)->{
-      process.send(reply_to, types.EngineReceiveUser(username, state))
+    types.UserGetAll(_username, reply_to)->{
+      process.send(reply_to, Ok(json.to_string(json.object([
+        #("username", json.string(state.username)),
+        #("karma", json.int(state.karma)),
+        #("subscribed_subreddits", json.int(set.size(state.subscribed_subreddits))),
+        #("created_posts", json.int(set.size(state.created_posts))),
+        #("created_comments", json.int(set.size(state.created_comments))),
+      ]))))
       actor.continue(state)
     }
 
@@ -37,9 +46,33 @@ pub fn user_actor(state: UserState, message: UserMessage) -> actor.Next(UserStat
         actor.continue(new_state)
     }
     types.UserGetFeed(reply_to, subreddit_manager)->{
-      set.each(state.subscribed_subreddits, fn(v){
-        process.send(subreddit_manager, types.SubredditManagerGetLatestPosts(v, reply_to))
-      })
+      let subreddits = set.to_list(state.subscribed_subreddits)
+
+      let all_post_ids =
+        list.map(subreddits, fn(sub_name) {
+          let call_result =
+            process.call(
+              subreddit_manager,
+              100,
+              fn(response_subject) {
+                types.SubredditManagerGetLatestPosts(sub_name, response_subject)
+              },
+            )
+
+          result.unwrap(call_result, [])
+        })
+        |> list.flatten()
+      // 4. Convert the aggregated list to JSON
+      let json_response =
+        json.object([
+          #("username", json.string(state.username)),
+          #("feed", json.array(all_post_ids, of: json.string)),
+          #("source_subreddits", json.int(list.length(subreddits))),
+        ])
+        |> json.to_string
+
+      // 5. Send final response to API
+      process.send(reply_to, Ok(json_response))
       actor.continue(state)
     }
   }

@@ -21,7 +21,7 @@ pub type UserState{
 }
 
 pub type UserMessage{
-    UserGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
+    UserGetAll(username: Username, reply_to: Subject(Result(String, String)))
     
     //update messages
     UserJoinedSubreddit(subreddit_name: SubredditName)
@@ -46,7 +46,7 @@ pub type UserManagerState{
 
 pub type UserManagerMessage{
     UserManagerCreateUser(username: Username, reply_to: Subject(Result(String, String)))
-    UserManagerGetUser(username: Username, reply_to: Subject(EngineReceiveMessage))
+    UserManagerGetUser(username: Username, reply_to: Subject(Result(String, String)))
     
     UserManagerUserJoinSubreddit(username: Username, subreddit_name: SubredditName, reply_to: Subject(Result(String, String)))
     UserManagerUserLeaveSubreddit(username: Username, subreddit_name: SubredditName, reply_to: Subject(Result(String, String)))
@@ -80,7 +80,7 @@ pub type SubredditMessage{
     SubredditCreatePost(post_id: PostId, reply_to: Subject(Result(String, String)))
 
     SubredditPrintNumSubscribers()
-    SubredditGetLatestPosts(reply_to: Subject(Result(String, String)))
+    SubredditGetLatestPosts(reply_to: Subject(Result(List(String), String)))
 }
 
 pub type SubredditManagerState{
@@ -100,7 +100,7 @@ pub type SubredditManagerMessage{
     SubredditManagerCreatedPostInSubreddit(subreddit_name: SubredditName, post_id: PostId, reply_to: Subject(Result(String, String)))
 
     // SubredditManagerGetAllSubreddits(reply_to: Subject(EngineReceiveMessage))
-    SubredditManagerGetLatestPosts(subreddit: SubredditName, reply_to: Subject(Result(String, String)))
+    SubredditManagerGetLatestPosts(subreddit: SubredditName, reply_to: Subject(Result(List(String), String)))
 }
 
 pub type PostState{
@@ -232,6 +232,7 @@ pub type EngineMessage {
     EngineGetSubredditManager(reply_with: Subject(Subject(SubredditManagerMessage)))
 
     EngineCreateUser(username: Username, reply_address: Subject(Result(String, String)))
+    EngineGetUser(username: Username, reply_address: Subject(Result(String, String)))
     EngineUserCreateSubreddit(subreddit_name: SubredditName, description: String, reply_address: Subject(Result(String, String)))
     EngineUserJoinSubreddit(username: Username, subreddit_name: SubredditName, reply_address: Subject(Result(String, String)))
     EngineUserLeaveSubreddit(username: Username, subreddit_name: SubredditName, reply_address: Subject(Result(String, String)))
