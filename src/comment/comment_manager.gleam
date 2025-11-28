@@ -131,7 +131,7 @@ pub fn comment_manager(state: types.CommentManagerState, message: types.CommentM
         )
         actor.continue(new_state)
     }
-    types.CommentManagerGetAllComments(reply_to)->{
+    types.CommentManagerGetAllComments(_reply_to)->{
         //obsolete now
         actor.continue(state)
     }
