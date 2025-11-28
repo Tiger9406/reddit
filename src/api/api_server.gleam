@@ -6,7 +6,7 @@ import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import gleam/json
 import gleam/list
-import gleam/option.{Some}
+import gleam/option.{Some, None}
 import mist
 import types
 
@@ -263,6 +263,15 @@ pub fn create_comment(req: Request(mist.Connection), state: ApiState) -> Respons
         make_engine_request(
           state,
           fn(reply) { types.EngineUserCreateComment(u, pid, Some(parent), c, reply) },
+          fn(cid) { 
+            json.object([#("comment_id", json.string(cid))]) |> json.to_string()
+          }
+        )
+      }
+      Ok(u), Ok(pid), Error(_), Ok(c) -> {
+        make_engine_request(
+          state,
+          fn(reply) { types.EngineUserCreateComment(u, pid, None, c, reply) },
           fn(cid) { 
             json.object([#("comment_id", json.string(cid))]) |> json.to_string()
           }

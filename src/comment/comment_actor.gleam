@@ -12,7 +12,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                 True->{
                     let new_downvotes = set.delete(state.downvotes, username)
                     let new_upvotes = set.insert(state.upvotes, username)
-                    process.send(user_manager, types.UserManagerUpdateKarma(username, 2))
+                    process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, 2))
                     let new_state = types.CommentState(..state, upvotes: new_upvotes, downvotes: new_downvotes)
                     actor.continue(new_state)
                 }
@@ -24,7 +24,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                         }
                         False->{
                             let new_upvote = set.insert(state.upvotes, username)
-                            process.send(user_manager, types.UserManagerUpdateKarma(username, 1))
+                            process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, 1))
                             let new_state = types.CommentState(..state, upvotes: new_upvote)
                             actor.continue(new_state)
                         }
@@ -38,7 +38,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                 True->{
                     let new_upvotes = set.delete(state.upvotes, username)
                     let new_downvotes = set.insert(state.downvotes, username)
-                    process.send(user_manager, types.UserManagerUpdateKarma(username, -2))
+                    process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, -2))
                     let new_state = types.CommentState(..state, upvotes: new_upvotes, downvotes: new_downvotes)
                     actor.continue(new_state)
                 }
@@ -50,7 +50,7 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
                         }
                         False->{
                             let new_downvote = set.insert(state.downvotes, username)
-                            process.send(user_manager, types.UserManagerUpdateKarma(username, -1))
+                            process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, -1))
                             let new_state = types.CommentState(..state, downvotes: new_downvote)
                             actor.continue(new_state)
                         }

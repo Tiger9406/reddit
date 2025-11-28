@@ -13,7 +13,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
             True->{
                 let new_downvotes = set.delete(state.downvotes, username)
                 let new_upvotes = set.insert(state.upvotes, username)
-                process.send(user_manager, types.UserManagerUpdateKarma(username, 2))
+                process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, 2))
                 process.send(reply_to, Ok("Upvoted successfully"))
                 let new_state = types.PostState(
                     state.post_id,
@@ -35,7 +35,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
                     }
                     False->{
                         let new_upvote = set.insert(state.upvotes, username)
-                        process.send(user_manager, types.UserManagerUpdateKarma(username, 1))
+                        process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, 1))
                         process.send(reply_to, Ok("Upvoted successfully"))
                         let new_state = types.PostState(
                             state.post_id,
@@ -59,7 +59,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
             True->{
                 let new_upvotes = set.delete(state.upvotes, username)
                 let new_downvotes = set.insert(state.downvotes, username)
-                process.send(user_manager, types.UserManagerUpdateKarma(username, -2))
+                process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, -2))
                 process.send(reply_to, Ok("Downvoted successfully"))
                 let new_state = types.PostState(
                     state.post_id,
@@ -82,7 +82,7 @@ pub fn post_actor(state: types.PostState, message: types.PostMessage) -> actor.N
                     }
                     False->{
                         let new_downvote = set.insert(state.downvotes, username)
-                        process.send(user_manager, types.UserManagerUpdateKarma(username, -1))
+                        process.send(user_manager, types.UserManagerUpdateKarma(state.author_username, -1))
                         process.send(reply_to, Ok("Downvoted successfully"))
                         let new_state = types.PostState(
                             state.post_id,
