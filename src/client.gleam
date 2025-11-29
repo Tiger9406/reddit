@@ -99,12 +99,27 @@ fn parse_args_loop(
 fn handle_command(args: List(String)) {
   case args {
     ["register", username] -> register_user(username)
+    ["user", username] -> get_user_info(username)
+    
     ["subreddit", name, desc] -> create_subreddit(name, desc)
     ["join", username, sub] -> join_subreddit(username, sub)
+    ["leave", username, sub] -> leave_subreddit(username, sub)
+    
     ["post", username, sub, title, content] -> create_post(username, sub, title, content)
+    ["view_post", post_id] -> get_post_details(post_id)
+    
     ["feed", username] -> get_feed(username)
+    
+    ["upvote", username, post_id] -> upvote_post(username, post_id)
+    ["downvote", username, post_id] -> downvote_post(username, post_id)
+    
+    ["comment", username, post_id, content] -> create_comment(username, post_id, content, "")
+    ["comment", username, post_id, content, parent_id] -> create_comment(username, post_id, content, parent_id)
+    ["view_comment", comment_id] -> get_comment_details(comment_id)
+    
     ["dm", from, to, content] -> send_dm(from, to, content)
     ["inbox", username, from] -> check_dms(username, from)
+    
     ["help"] -> print_help()
     _ -> {
       io.println("Invalid command.")
@@ -132,6 +147,10 @@ fn create_subreddit(name: String, desc: String) {
   send_post("/subreddits", body)
 }
 
+fn get_user_info(username: String) {
+  send_get("/users/" <> username)
+}
+
 fn join_subreddit(username: String, sub: String) {
   let body =
     json.object([
@@ -141,6 +160,12 @@ fn join_subreddit(username: String, sub: String) {
 
   send_post("/users/" <> username <> "/subreddits/join", body)
 }
+
+fn leave_subreddit(username: String, sub: String) {
+  let body = json.object([#("subreddit_name", json.string(sub))]) |> json.to_string
+  send_post("/users/" <> username <> "/subreddits/leave", body)
+}
+
 
 fn create_post(username: String, sub: String, title: String, content: String) {
   let body =
@@ -155,8 +180,42 @@ fn create_post(username: String, sub: String, title: String, content: String) {
   send_post("/posts", body)
 }
 
+fn get_post_details(post_id: String) {
+  send_get("/posts/" <> post_id)
+}
+
+fn upvote_post(username: String, post_id: String) {
+  let body = json.object([#("username", json.string(username))]) |> json.to_string
+  send_post("/posts/" <> post_id <> "/upvote", body)
+}
+
+fn downvote_post(username: String, post_id: String) {
+  let body = json.object([#("username", json.string(username))]) |> json.to_string
+  send_post("/posts/" <> post_id <> "/downvote", body)
+}
+
 fn get_feed(username: String) {
   send_get("/users/" <> username <> "/feed")
+}
+
+fn create_comment(username: String, post_id: String, content: String, parent_id: String) {
+  let fields = [
+    #("username", json.string(username)),
+    #("post_id", json.string(post_id)),
+    #("content", json.string(content))
+  ]
+
+  let final_fields = case parent_id {
+    "" -> fields
+    pid -> [#("parent_comment_id", json.string(pid)), ..fields]
+  }
+
+  let body = json.object(final_fields) |> json.to_string
+  send_post("/comments", body)
+}
+
+fn get_comment_details(comment_id: String) {
+  send_get("/comments/" <> comment_id)
 }
 
 fn send_dm(from: String, to: String, content: String) {
@@ -204,11 +263,19 @@ fn handle_response(result: Result(response.Response(String), httpc.HttpError)) {
 
 fn print_help() {
   io.println("Usage:")
-  io.println("  gleam run -m client -- register <username>")
-  io.println("  gleam run -m client -- subreddit <name> <desc>")
-  io.println("  gleam run -m client -- join <username> <subreddit>")
-  io.println("  gleam run -m client -- post <username> <subreddit> <title> <content>")
-  io.println("  gleam run -m client -- feed <username>")
-  io.println("  gleam run -m client -- dm <from> <to> <content>")
-  io.println("  gleam run -m client -- inbox <username> <from_whom>")
+  io.println("  register <username>")
+  io.println("  user <username>")
+  io.println("  subreddit <name> <desc>")
+  io.println("  join <username> <subreddit>")
+  io.println("  leave <username> <subreddit>")
+  io.println("  post <username> <subreddit> <title> <content>")
+  io.println("  view_post <post_id>")
+  io.println("  upvote <username> <post_id>")
+  io.println("  downvote <username> <post_id>")
+  io.println("  comment <username> <post_id> <content> [parent_comment_id]")
+  io.println("  view_comment <comment_id>")
+  io.println("  feed <username>")
+  io.println("  dm <from> <to> <content>")
+  io.println("  inbox <username> <from_whom>")
+  io.println("  exit")
 }
