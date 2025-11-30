@@ -2,3 +2,9 @@
 *.ez
 /build
 erl_crash.dump
+
+*.mp4
+*.pdf
+*.pages
+
+.DS_Store
