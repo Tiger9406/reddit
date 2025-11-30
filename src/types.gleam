@@ -164,7 +164,7 @@ pub type CommentMessage{
     CommentUpvote(username: Username, user_manager: Subject(UserManagerMessage))
     CommentDownvote(username: Username, user_manager: Subject(UserManagerMessage))
     CommentAddReply(reply_comment_id: CommentId)
-    CommentGetAll(username: Username, reply_to: Subject(EngineReceiveMessage))
+    CommentGetAll(username: Username, reply_to: Subject(Result(String, String)))
 }
 
 pub type CommentManagerState{
@@ -177,7 +177,7 @@ pub type CommentManagerState{
 }
 
 pub type CommentManagerMessage{
-    CommentManagerGetComment(comment_id: CommentId, reply_to: Subject(EngineReceiveMessage), username: Username)
+    CommentManagerGetComment(comment_id: CommentId, reply_to: Subject(Result(String, String)), username: Username)
 
     CommentManagerSetUserManager(user_manager: Subject(UserManagerMessage))
     CommentManagerSetPostManager(post_manager: Subject(PostManagerMessage))
@@ -245,9 +245,10 @@ pub type EngineMessage {
     EngineUserCreateComment(username: Username, post_id: PostId, parent_comment_id: Option(CommentId), content: String, reply_address: Subject(Result(String, String)))
     EngineUserUpvotesComment(username: Username, comment_id: CommentId, reply_address: Subject(Result(String, String)))
     EngineUserDownvotesComment(username: Username, comment_id: CommentId, reply_address: Subject(Result(String, String)))
+    EngineUserGetComment(comment_id: CommentId, reply_address: Subject(Result(String, String)))
 
     EngineUserSendDM(username: Username, other_username: Username, content: String, reply_address: Subject(Result(String, String)))
-
+    EngineUserGetDMs(username: Username, other_username: Username, reply_address: Subject(Result(String, String)))
     EngineGetUserFeed(username: Username, reply_to: Subject(Result(List(String), String)))
 
     // EngineGetAllSubreddits()

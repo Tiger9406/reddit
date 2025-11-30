@@ -170,6 +170,14 @@ fn engine_actor(
             process.send(state.user_manager, types.UserManagerGetUserFeed(username, reply_to))
             actor.continue(state)
         }
+        types.EngineUserGetComment(comment_id, reply_address) -> {
+             process.send(state.comment_manager, types.CommentManagerGetComment(comment_id, reply_address, ""))
+             actor.continue(state)
+        }
+        types.EngineUserGetDMs(username, other_username, reply_address) -> {
+            process.send(state.dm_manager, types.GetDMConversationBetweenUsers(username, other_username, reply_address))
+            actor.continue(state)
+        }
         types.Shutdown -> {
             actor.stop()
         }

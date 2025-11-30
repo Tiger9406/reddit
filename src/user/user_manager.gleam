@@ -10,6 +10,7 @@ import types.{type UserManagerState, type UserManagerMessage}
 pub fn user_manager(state: UserManagerState, message: UserManagerMessage) -> actor.Next(UserManagerState, UserManagerMessage) {
   case message {
     types.UserManagerCreateUser(username, reply_to) -> {
+        io.println("Creating user: in backend" <> username)
         //create user actor
         let initial_state = types.UserState(
             username,

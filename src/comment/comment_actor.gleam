@@ -2,6 +2,7 @@ import types
 import gleam/otp/actor
 import gleam/erlang/process
 import gleam/set
+import gleam/json
 
 
 pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -> actor.Next(types.CommentState, types.CommentMessage) {
@@ -63,12 +64,20 @@ pub fn comment_actor(state: types.CommentState, message: types.CommentMessage) -
             let new_state = types.CommentState(..state, replies: new_replies)
             actor.continue(new_state)
         }
-        types.CommentGetAll(username, reply_to) -> {
+        types.CommentGetAll(_username, reply_to) -> {
             //send all info about comment to reply_to
-            process.send(reply_to, types.EngineReceiveCommentData(
-                username, 
-                state
-            ))
+            let json_output = json.object([
+                #("comment_id", json.string(state.comment_id)),
+                #("author", json.string(state.author_username)),
+                #("content", json.string(state.content)),
+                #("post_id", json.string(state.post)),
+                #("upvotes", json.int(set.size(state.upvotes))),
+                #("downvotes", json.int(set.size(state.downvotes))),
+                #("replies", json.array(set.to_list(state.replies), of: json.string))
+            ])
+            |> json.to_string()
+
+            process.send(reply_to, Ok(json_output))
             actor.continue(state)
         }
     }

@@ -27,9 +27,7 @@ fn json_response(status: Int, body: String) -> Response(String) {
   |> response.set_header("access-control-allow-origin", "*")
 }
 
-// 1. RAW JSON BUILDER
-// This constructs the JSON string manually. 
-// It prevents "Double Encoding" when the 'data' is already a JSON string.
+// custonm json builder
 fn success_json_raw(message: String, raw_data_json: String) -> String {
   let escaped_message = json.string(message) |> json.to_string()
   "{ \"status\": \"success\", \"message\": " <> escaped_message <> ", \"data\": " <> raw_data_json <> " }"
@@ -86,6 +84,7 @@ pub fn handle_request(
 
     // Subreddits
     http.Post, ["api", "subreddits"] -> create_subreddit(req, state)
+    http.Get, ["api", "comments", comment_id] -> get_comment(comment_id, state)
     http.Post, ["api", "users", username, "subreddits", "join"] -> join_subreddit(req, username, state)
     http.Post, ["api", "users", username, "subreddits", "leave"] -> leave_subreddit(req, username, state)
 
@@ -102,6 +101,7 @@ pub fn handle_request(
 
     // DM
     http.Post, ["api", "messages"] -> send_dm(req, state)
+    http.Get, ["api", "users", username, "messages", other_user] -> get_dms(username, other_user, state)
 
     _, _ -> json_response(404, error_json("Endpoint not found"))
   }
@@ -280,6 +280,22 @@ pub fn create_comment(req: Request(mist.Connection), state: ApiState) -> Respons
       _, _, _, _ -> json_response(400, error_json("Missing fields"))
     }
   })
+}
+
+fn get_comment(comment_id: String, state: ApiState) -> Response(String) {
+  make_engine_request(
+    state,
+    fn(reply) { types.EngineUserGetComment(comment_id, reply) },
+    fn(json_str) { json_str }
+  )
+}
+
+fn get_dms(username: String, other_user: String, state: ApiState) -> Response(String) {
+  make_engine_request(
+    state,
+    fn(reply) { types.EngineUserGetDMs(username, other_user, reply) },
+    fn(json_str) { json_str }
+  )
 }
 
 pub fn upvote_comment(req: Request(mist.Connection), comment_id: String, state: ApiState) -> Response(String) {
